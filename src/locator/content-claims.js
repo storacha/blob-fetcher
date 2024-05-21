@@ -89,7 +89,7 @@ export class ContentClaimsLocator {
 
 /**
  * Create a new content claims blob locator.
- * @param {{ serviceURL: URL }} [options]
+ * @param {{ serviceURL?: URL }} [options]
  * @returns {API.Locator}
  */
 export const create = (options) => new ContentClaimsLocator(options)
