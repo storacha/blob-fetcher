@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/w3s-project/blob-fetcher/compare/v1.0.1...v1.1.0) (2024-05-22)
+
+
+### Features
+
+* batching fetcher ([981f71a](https://github.com/w3s-project/blob-fetcher/commit/981f71a464c410ffd5a1b3bb7fef05c0f823c9ce))
+
 ## [1.0.1](https://github.com/w3s-project/blob-fetcher/compare/v1.0.0...v1.0.1) (2024-05-21)
 
 
