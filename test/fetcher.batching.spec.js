@@ -14,10 +14,11 @@ import { asBlockstore } from './helpers/unixfs-exporter.js'
 import { patchFetch } from './helpers/fetch.js'
 import { createLocator } from './helpers/locator.js'
 
-patchFetch(6) // simulates cloudflare worker environment with max 6 concurrent reqs
+// simulates cloudflare worker environment with max 6 concurrent reqs
+patchFetch({ concurrency: 6, lag: 50 })
 
 export const testSimpleBlobFetcher = {
-  'skip should fetch a file': withBucketServer(async (/** @type {import('entail').assert} assert */ assert, ctx) => {
+  'should fetch a file': withBucketServer(async (/** @type {import('entail').assert} assert */ assert, ctx) => {
     const fileBytes = await randomBytes(10 * 1024 * 1024)
 
     const { readable, writable } = new TransformStream({}, UnixFS.withCapacity(1048576 * 32))
@@ -47,7 +48,7 @@ export const testSimpleBlobFetcher = {
     assert.ok(equals(exportedBytes, fileBytes))
   }),
 
-  'skip should benchmark 500MB': withBucketServer(async (/** @type {import('entail').assert} assert */ assert, ctx) => {
+  'should benchmark 500MB': withBucketServer(async (/** @type {import('entail').assert} assert */ assert, ctx) => {
     const fileBytes = await randomBytes(500 * 1024 * 1024)
 
     const { readable, writable } = new TransformStream({}, UnixFS.withCapacity(1048576 * 32))

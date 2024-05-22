@@ -15,7 +15,8 @@ import { asBlockstore } from './helpers/unixfs-exporter.js'
 import { patchFetch } from './helpers/fetch.js'
 import { createLocator } from './helpers/locator.js'
 
-patchFetch(6) // simulates cloudflare worker environment with max 6 concurrent reqs
+// simulates cloudflare worker environment with max 6 concurrent reqs
+patchFetch({ concurrency: 6, lag: 50 })
 
 export const testSimpleBlobFetcher = {
   'should fetch a file': withBucketServer(async (/** @type {import('entail').assert} assert */ assert, ctx) => {

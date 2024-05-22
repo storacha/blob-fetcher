@@ -1,15 +1,12 @@
 // eslint-disable-next-line
 import * as API from '../api.js'
 import { DigestMap } from '@web3-storage/blob-index'
-import { meros } from 'meros/browser'
 import defer from 'p-defer'
+import { MultipartByteRangeDecoder, getBoundary } from 'multipart-byte-range/decoder'
 import { NetworkError, NotFoundError } from '../lib.js'
 import { fetchBlob } from './simple.js'
-// import { base58btc } from 'multiformats/bases/base58'
-// import { sha256 } from 'multiformats/hashes/sha2'
-// import { equals } from 'multiformats/bytes'
 
-const MAX_BATCH_SIZE = 6
+const MAX_BATCH_SIZE = 12
 
 /** @implements {API.Fetcher} */
 class BatchingFetcher {
@@ -57,7 +54,6 @@ class BatchingFetcher {
   }
 
   async #processBatch () {
-    // console.log('processing batch')
     const queue = this.#queue
     this.#queue = []
     const pendingReqs = this.#pendingReqs
@@ -100,7 +96,6 @@ class BatchingFetcher {
    * @param {API.GetOptions} [options]
    */
   async fetch (digest, options) {
-    // console.log('fetch', base58btc.encode(digest.bytes))
     const locResult = await this.#locator.locate(digest, options)
     if (locResult.error) return locResult
 
@@ -160,21 +155,32 @@ export const fetchBlobs = async (url, locations) => {
 
   const headers = { Range: `bytes=${ranges.map(r => `${r.offset}-${r.offset + r.length - 1}`).join(',')}` }
   try {
-    // console.log(url.toString(), headers)
     const res = await fetch(url, { headers })
     if (!res.ok) {
       return { error: new NetworkError(url, { cause: new Error(`unexpected HTTP status: ${res.status}`) }) }
     }
 
-    let i = 0
-    const parts = /** @type {AsyncGenerator<import('meros').Part<string, string>>} */ (await meros(res))
-    const blobs = []
-    for await (const part of parts) {
-      // FIXME: this does not work
-      const bytes = new TextEncoder().encode(part.body)
-      blobs.push({ digest: locations[i].digest, bytes })
-      i++
+    if (!res.body) {
+      return { error: new NetworkError(url, { cause: new Error('missing repsonse body') }) }
     }
+
+    const boundary = getBoundary(res.headers)
+    if (!boundary) {
+      return { error: new NetworkError(url, { cause: new Error('missing multipart boundary') }) }
+    }
+
+    /** @type {API.Blob[]} */
+    const blobs = []
+    let i = 0
+    await res.body
+      .pipeThrough(new MultipartByteRangeDecoder(boundary))
+      .pipeTo(new WritableStream({
+        write (part) {
+          blobs.push({ digest: locations[i].digest, bytes: part.content })
+          i++
+        }
+      }))
+
     return { ok: blobs }
   } catch (err) {
     return { error: new NetworkError(url, { cause: err }) }

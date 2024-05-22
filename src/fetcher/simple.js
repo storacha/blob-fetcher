@@ -39,7 +39,6 @@ export const fetchBlob = async (location) => {
     for (const url of site.location) {
       const headers = { Range: `bytes=${site.range.offset}-${site.range.offset + site.range.length - 1}` }
       try {
-        // console.log(url.toString(), headers)
         const res = await fetch(url, { headers })
         if (!res.ok) {
           console.warn(`failed to fetch ${url}: ${res.status} ${await res.text()}`)
