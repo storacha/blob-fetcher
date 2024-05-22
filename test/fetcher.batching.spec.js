@@ -1,5 +1,3 @@
-// eslint-disable-next-line
-import * as API from '../src/api.js'
 import { sha256 } from 'multiformats/hashes/sha2'
 import { equals } from 'multiformats/bytes'
 import { fromShardArchives } from '@web3-storage/blob-index/util'
