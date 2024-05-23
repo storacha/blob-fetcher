@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/w3s-project/blob-fetcher/compare/v1.1.0...v2.0.0) (2024-05-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* allow streaming from fetcher
+
+### Features
+
+* allow streaming from fetcher ([2dc4bb5](https://github.com/w3s-project/blob-fetcher/commit/2dc4bb5f675250453d8009de402d7290c0ab3242))
+
 ## [1.1.0](https://github.com/w3s-project/blob-fetcher/compare/v1.0.1...v1.1.0) (2024-05-22)
 
 
