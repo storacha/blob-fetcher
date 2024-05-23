@@ -176,7 +176,16 @@ export const fetchBlobs = async (url, locations) => {
       .pipeThrough(new MultipartByteRangeDecoder(boundary))
       .pipeTo(new WritableStream({
         write (part) {
-          blobs.push({ digest: locations[i].digest, bytes: part.content })
+          blobs.push({
+            digest: locations[i].digest,
+            bytes: async () => part.content,
+            stream: () => new ReadableStream({
+              pull (controller) {
+                controller.enqueue(part.content)
+                controller.close()
+              }
+            })
+          })
           i++
         }
       }))

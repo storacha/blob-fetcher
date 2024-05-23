@@ -40,11 +40,18 @@ export const fetchBlob = async (location) => {
       const headers = { Range: `bytes=${site.range.offset}-${site.range.offset + site.range.length - 1}` }
       try {
         const res = await fetch(url, { headers })
-        if (!res.ok) {
+        if (!res.ok || !res.body) {
           console.warn(`failed to fetch ${url}: ${res.status} ${await res.text()}`)
           continue
         }
-        return { ok: { digest: location.digest, bytes: new Uint8Array(await res.arrayBuffer()) } }
+        const body = res.body
+        return {
+          ok: {
+            digest: location.digest,
+            bytes: async () => new Uint8Array(await res.arrayBuffer()),
+            stream: () => body
+          }
+        }
       } catch (err) {
         networkError = new NetworkError(url, { cause: err })
       }

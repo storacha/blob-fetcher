@@ -12,7 +12,8 @@ export type GetOptions = Partial<Abortable>
 
 export interface Blob {
   digest: MultihashDigest
-  bytes: Uint8Array
+  bytes(): Promise<Uint8Array>
+  stream(): ReadableStream<Uint8Array>
 }
 
 export interface Location {

@@ -7,6 +7,6 @@ export const asBlockstore = fetcher => ({
       console.error(res.error)
       throw res.error
     }
-    return res.ok.bytes
+    return res.ok.bytes()
   }
 })
