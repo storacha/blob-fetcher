@@ -1,5 +1,6 @@
 // eslint-disable-next-line
 import * as API from '../api.js'
+import { resolveRange } from './lib.js'
 import { NetworkError, NotFoundError } from '../lib.js'
 
 /** @implements {API.Fetcher} */
@@ -13,12 +14,12 @@ class SimpleFetcher {
 
   /**
    * @param {API.MultihashDigest} digest
-   * @param {API.GetOptions} [options]
+   * @param {API.FetchOptions} [options]
    */
   async fetch (digest, options) {
     const locResult = await this.#locator.locate(digest, options)
     if (locResult.error) return locResult
-    return fetchBlob(locResult.ok)
+    return fetchBlob(locResult.ok, options?.range)
   }
 }
 
@@ -32,26 +33,25 @@ export const create = (locator) => new SimpleFetcher(locator)
 /**
  * Fetch a blob from the passed location.
  * @param {API.Location} location
+ * @param {API.Range} [range]
  */
-export const fetchBlob = async (location) => {
+export const fetchBlob = async (location, range) => {
   let networkError
   for (const site of location.site) {
     for (const url of site.location) {
-      const headers = { Range: `bytes=${site.range.offset}-${site.range.offset + site.range.length - 1}` }
+      let resolvedRange = [site.range.offset, site.range.offset + site.range.length - 1]
+      if (range) {
+        const relRange = resolveRange(range, site.range.length)
+        resolvedRange = [site.range.offset + relRange[0], site.range.offset + relRange[1]]
+      }
+      const headers = { Range: `bytes=${resolvedRange[0]}-${resolvedRange[1]}` }
       try {
         const res = await fetch(url, { headers })
         if (!res.ok || !res.body) {
           console.warn(`failed to fetch ${url}: ${res.status} ${await res.text()}`)
           continue
         }
-        const body = res.body
-        return {
-          ok: {
-            digest: location.digest,
-            bytes: async () => new Uint8Array(await res.arrayBuffer()),
-            stream: () => body
-          }
-        }
+        return { ok: new Blob(location.digest, res) }
       } catch (err) {
         networkError = new NetworkError(url, { cause: err })
       }
@@ -59,4 +59,36 @@ export const fetchBlob = async (location) => {
   }
 
   return { error: networkError || new NotFoundError(location.digest) }
+}
+
+/** @implements {API.Blob} */
+class Blob {
+  #digest
+  #response
+
+  /**
+   * @param {API.MultihashDigest} digest
+   * @param {Response} response
+   */
+  constructor (digest, response) {
+    this.#digest = digest
+    this.#response = response
+  }
+
+  get digest () {
+    return this.#digest
+  }
+
+  async bytes () {
+    return new Uint8Array(await this.#response.arrayBuffer())
+  }
+
+  stream () {
+    if (!this.#response.body) throw new Error('missing response body')
+    return this.#response.body
+  }
+
+  clone () {
+    return new Blob(this.#digest, this.#response.clone())
+  }
 }
