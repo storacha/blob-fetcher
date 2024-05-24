@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/w3s-project/blob-fetcher/compare/v2.0.0...v2.1.0) (2024-05-24)
+
+
+### Features
+
+* add range option to fetcher ([#5](https://github.com/w3s-project/blob-fetcher/issues/5)) ([55b7c19](https://github.com/w3s-project/blob-fetcher/commit/55b7c1951074ea5508cf2158159c58bd0c5043ef))
+
 ## [2.0.0](https://github.com/w3s-project/blob-fetcher/compare/v1.1.0...v2.0.0) (2024-05-23)
 
 
