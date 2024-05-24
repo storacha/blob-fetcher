@@ -11,3 +11,6 @@ export const randomBytes = async (size) => {
   }
   return bytes
 }
+
+/** @param {number} max */
+export const randomInt = (max) => Math.floor(Math.random() * max)
