@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.2](https://github.com/w3s-project/blob-fetcher/compare/v2.1.1...v2.1.2) (2024-05-28)
+
+
+### Bug Fixes
+
+* queue processing error ([9c03ff0](https://github.com/w3s-project/blob-fetcher/commit/9c03ff0f4a22a7f5164117cdcefd6bed8854797e))
+
 ## [2.1.1](https://github.com/w3s-project/blob-fetcher/compare/v2.1.0...v2.1.1) (2024-05-28)
 
 
