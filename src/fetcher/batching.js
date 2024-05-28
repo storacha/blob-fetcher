@@ -73,12 +73,13 @@ class BatchingFetcher {
       const siteURL = first.location.site[0].location[0]
       const locs = [first]
       while (true) {
-        const next = queue.shift()
+        const next = queue[0]
         if (!next) break
 
         const site = next.location.site.find(s => s.location.some(l => l.toString() === siteURL.toString()))
         if (!site) break
 
+        queue.shift()
         locs.push(next)
         if (locs.length >= MAX_BATCH_SIZE) break
       }
