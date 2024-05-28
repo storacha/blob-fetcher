@@ -72,16 +72,22 @@ export class ContentClaimsLocator {
     const claims = await Claims.read(cid, { serviceURL: this.#serviceURL })
     for (const claim of claims) {
       if (claim.type === 'assert/location' && claim.range?.length != null) {
-        this.#cache.set(digest, {
-          digest,
-          site: [{
+        const location = this.#cache.get(digest)
+        if (location) {
+          location.site.push({
             location: claim.location.map(l => new URL(l)),
             range: { offset: claim.range.offset, length: claim.range.length }
-          }]
-        })
-        continue
+          })
+        } else {
+          this.#cache.set(digest, {
+            digest,
+            site: [{
+              location: claim.location.map(l => new URL(l)),
+              range: { offset: claim.range.offset, length: claim.range.length }
+            }]
+          })
+        }
       }
-      break
     }
     this.#claimFetched.set(digest, true)
   }
