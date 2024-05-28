@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/w3s-project/blob-fetcher/compare/v2.1.0...v2.1.1) (2024-05-28)
+
+
+### Bug Fixes
+
+* collect all location claims ([109290c](https://github.com/w3s-project/blob-fetcher/commit/109290cdeddb7a625e36e1484778a1e68905c576))
+
 ## [2.1.0](https://github.com/w3s-project/blob-fetcher/compare/v2.0.0...v2.1.0) (2024-05-24)
 
 
