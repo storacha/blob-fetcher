@@ -1,7 +1,5 @@
 // eslint-disable-next-line
 import * as API from '../api.js'
-import * as raw from 'multiformats/codecs/raw'
-import * as Link from 'multiformats/link'
 import * as Claims from '@web3-storage/content-claims/client'
 import { DigestMap } from '@web3-storage/blob-index'
 import { NotFoundError } from '../lib.js'
@@ -68,8 +66,7 @@ export class ContentClaimsLocator {
   async #readClaims (digest) {
     if (this.#claimFetched.has(digest)) return
 
-    const cid = Link.create(raw.code, digest)
-    const claims = await Claims.read(cid, { serviceURL: this.#serviceURL })
+    const claims = await Claims.read(digest, { serviceURL: this.#serviceURL })
     for (const claim of claims) {
       if (claim.type === 'assert/location' && claim.range?.length != null) {
         const location = this.#cache.get(digest)
