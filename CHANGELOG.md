@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.3](https://github.com/w3s-project/blob-fetcher/compare/v2.1.2...v2.1.3) (2024-05-29)
+
+
+### Bug Fixes
+
+* upgrade to latest content claims ([746a9c2](https://github.com/w3s-project/blob-fetcher/commit/746a9c22be8017593089d21d97cd62215939977d))
+
 ## [2.1.2](https://github.com/w3s-project/blob-fetcher/compare/v2.1.1...v2.1.2) (2024-05-28)
 
 
