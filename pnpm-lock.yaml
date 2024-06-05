@@ -12,8 +12,8 @@ dependencies:
     specifier: ^1.0.2
     version: 1.0.2
   '@web3-storage/content-claims':
-    specifier: ^5.0.0
-    version: 5.0.0
+    specifier: ^5.1.0
+    version: 5.1.0
   multiformats:
     specifier: ^13.1.0
     version: 13.1.0
@@ -31,15 +31,18 @@ devDependencies:
   '@ipld/unixfs':
     specifier: ^3.0.0
     version: 3.0.0
+  '@ucanto/principal':
+    specifier: ^9.0.1
+    version: 9.0.1
   '@web3-storage/public-bucket':
-    specifier: ^1.0.0
-    version: 1.0.0
+    specifier: ^1.1.0
+    version: 1.1.0
   c8:
     specifier: ^9.1.0
     version: 9.1.0
   carstream:
-    specifier: ^2.1.0
-    version: 2.1.0
+    specifier: ^2.2.0
+    version: 2.2.0
   entail:
     specifier: ^2.1.2
     version: 2.1.2
@@ -160,7 +163,6 @@ packages:
       '@ipld/dag-cbor': 9.2.0
       '@ipld/dag-json': 10.2.0
       multiformats: 11.0.2
-    dev: false
 
   /@ipld/unixfs@3.0.0:
     resolution: {integrity: sha512-Tj3/BPOlnemcZQ2ETIZAO8hqAs9KNzWyX5J9+JCL9jDwvYwjxeYjqJ3v+9DusNvTBmJhZnGVP6ijUHrsuOLp+g==}
@@ -215,16 +217,13 @@ packages:
     resolution: {integrity: sha512-p+4cb332SFCrReJkCYe8Xzm0OWi4Jji5jVdIZRL/PmacmDkFNw6MrrV+gGpiPxLHbV+zKFRywUWbaseT+tZRXg==}
     dependencies:
       '@noble/hashes': 1.4.0
-    dev: false
 
   /@noble/ed25519@1.7.3:
     resolution: {integrity: sha512-iR8GBkDt0Q3GyaVcIu7mSsVIqnFbkbRzGLWlvhwunacoLwt4J3swfKhfaM6rN6WY+TBGoYT1GtT1mIh2/jGbRQ==}
-    dev: false
 
   /@noble/hashes@1.4.0:
     resolution: {integrity: sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg==}
     engines: {node: '>= 16'}
-    dev: false
 
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -333,7 +332,6 @@ packages:
     dependencies:
       '@ipld/dag-ucan': 3.4.0
       multiformats: 11.0.2
-    dev: false
 
   /@ucanto/principal@9.0.1:
     resolution: {integrity: sha512-8eAvaZHW1vyET4X90rkJv6pmW1IOdEYlZYwO3wDgTkC5m9VytBEywCvpzP57cavdYIbbPse5QS9nMEGvk87zhw==}
@@ -345,7 +343,6 @@ packages:
       '@ucanto/interface': 10.0.1
       multiformats: 11.0.2
       one-webcrypto: 1.0.3
-    dev: false
 
   /@ucanto/server@10.0.0:
     resolution: {integrity: sha512-JMDMT3tFRE0S1cdtx/Hhh7v9FizV6IS0fPrh6pcli7AzKvXVy8Xu6EQ/66Fax4AQM2tkGxNNxjj2wHM7P4CqAg==}
@@ -385,7 +382,7 @@ packages:
       '@ucanto/core': 10.0.1
       '@ucanto/interface': 10.0.1
       '@web3-storage/capabilities': 17.1.0
-      carstream: 2.1.0
+      carstream: 2.2.0
       multiformats: 13.1.0
       uint8arrays: 5.1.0
     dev: false
@@ -402,14 +399,14 @@ packages:
       uint8arrays: 5.1.0
     dev: false
 
-  /@web3-storage/content-claims@5.0.0:
-    resolution: {integrity: sha512-HJFRFsR0qHCe0cOERsb3AjAxxzohYMMoIWaGJgrShDycnl6yqXHrGcdua1BWUDu5pmvKzwD9D7VmI8aSfrCcRA==}
+  /@web3-storage/content-claims@5.1.0:
+    resolution: {integrity: sha512-3VStFKoeieRpRU7brFjKTsAuAffQzYDIZ8F3Gh0+niw+MgzBK72osW+fftdquT8neWir34Ndu3mBUKKJ3ck1RQ==}
     dependencies:
       '@ucanto/client': 9.0.1
       '@ucanto/interface': 10.0.1
       '@ucanto/server': 10.0.0
       '@ucanto/transport': 9.1.1
-      carstream: 2.1.0
+      carstream: 2.2.0
       multiformats: 13.1.0
     dev: false
 
@@ -421,11 +418,13 @@ packages:
       sync-multihash-sha2: 1.0.0
     dev: false
 
-  /@web3-storage/public-bucket@1.0.0:
-    resolution: {integrity: sha512-Yn7E4ze50ldLPtK6zAuyYM/mEGGoQhFan6pX0zPScEoB8ehlJCwqALD+vLg7KA4DO3DGEPuFbhN0O+qR3ihr3Q==}
+  /@web3-storage/public-bucket@1.1.0:
+    resolution: {integrity: sha512-Fo9TXZ5lq0f8mn5is1paZ+31jKQYZl4/SAGdeeUGWMiHMX9vTPHVhhOyjK7hazlnLLRI/iO5srjNlb6s3zpoAQ==}
     dependencies:
       '@httpland/range-parser': 1.2.0
-      multipart-byte-range: 2.0.2
+      multipart-byte-range: 3.0.1
+      p-defer: 4.0.1
+      uint8arraylist: 2.4.8
     dev: true
 
   /acorn-jsx@5.3.2(acorn@8.11.3):
@@ -599,11 +598,6 @@ packages:
       semver: 7.6.2
     dev: true
 
-  /byteranges@1.1.0:
-    resolution: {integrity: sha512-c1bjg97QZleneWOirBABMvzz4qsxb9KoIFYKilQxMovb5N5MwLHnDuVt7k98Q/kL42hI1HcgG67q7yszFZJuqA==}
-    engines: {node: '>=14'}
-    dev: true
-
   /c8@9.1.0:
     resolution: {integrity: sha512-mBWcT5iqNir1zIkzSPyI3NCR9EZCVI3WUD+AVO17MVWTSFNyUueXE82qTeampNtTr+ilN/5Ua3j24LgbCKjDVg==}
     engines: {node: '>=14.14.0'}
@@ -638,8 +632,8 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /carstream@2.1.0:
-    resolution: {integrity: sha512-4kYIT1Y+GW/+o6wxS2tZlKnnINcgm4ceODBmyoLNaiQ17G2FNmzvUnQnVQkugC4NORTMCzD6KZEMT534XMJ4Yw==}
+  /carstream@2.2.0:
+    resolution: {integrity: sha512-/gHkK0lQjmGM45fhdx8JD+x7a1XS1qUk3T9xWWSt3oZiWPLq4u/lnDstp+N55K7hqTKKlb0CCr43EHTrlbmJSQ==}
     dependencies:
       '@ipld/dag-cbor': 9.2.0
       multiformats: 13.1.0
@@ -1979,23 +1973,15 @@ packages:
   /multiformats@11.0.2:
     resolution: {integrity: sha512-b5mYMkOkARIuVZCpvijFj9a6m5wMVLC7cf/jIPd5D/ARDOfLC5+IFkbgDXQgcU2goIsTD/O9NY4DI/Mt4OGvlg==}
     engines: {node: '>=16.0.0', npm: '>=7.0.0'}
-    dev: false
 
   /multiformats@13.1.0:
     resolution: {integrity: sha512-HzdtdBwxsIkzpeXzhQ5mAhhuxcHbjEHH+JQoxt7hG/2HGFjjwyolLo7hbaexcnhoEuV4e0TNJ8kkpMjiEYY4VQ==}
-
-  /multipart-byte-range@2.0.2:
-    resolution: {integrity: sha512-S1t3lY/FeYpfpVG6XD1BIRBOsGwwBXyqK/T+w9sKVNDS1OSUFxjjhTBYkRyMw2VT5oBwZInlKK58qAgB8Rcniw==}
-    dependencies:
-      byteranges: 1.1.0
-    dev: true
 
   /multipart-byte-range@3.0.1:
     resolution: {integrity: sha512-+LVbrwBmkEyClExud3FSN9xZuo0ZFWJ2yg0PxJCvnwjMch2x4Q0IXkpc97rF8k17/kNG37vN82NxVgOrQ07wlg==}
     dependencies:
       streamsearch-web: 1.0.0
       uint8arraylist: 2.4.8
-    dev: false
 
   /murmurhash3js-revisited@3.0.0:
     resolution: {integrity: sha512-/sF3ee6zvScXMb1XFJ8gDsSnY+X8PbOyjIuBhtgis10W2Jx4ZjIhikUCIF9c4gpJxVnQIsPAFrSwTCuAjicP6g==}
@@ -2084,7 +2070,6 @@ packages:
 
   /one-webcrypto@1.0.3:
     resolution: {integrity: sha512-fu9ywBVBPx0gS9K0etIROTiCkvI5S1TDjFsYFb3rC1ewFxeOqsbzq7aIMBHsYfrTHBcGXJaONXXjTl8B01cW1Q==}
-    dev: false
 
   /optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -2478,7 +2463,6 @@ packages:
   /streamsearch-web@1.0.0:
     resolution: {integrity: sha512-KBBU/O/xSjbr1z+NPwLE9iTrE3Pc/Ue7HumjvjjP1t7oYIM35OOMYRy/lZBoIwsiSKTnQ+uF8QbaJEa7FdJIzA==}
     engines: {node: '>=18.0.0'}
-    dev: false
 
   /string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}

@@ -13,7 +13,7 @@ import { resolveRange } from './lib.js'
  * @typedef {Map<RangeKey, PendingBlobRequest[]>} RangedRequests
  */
 
-const MAX_BATCH_SIZE = 12
+const MAX_BATCH_SIZE = 16
 
 /** @implements {API.Fetcher} */
 class BatchingFetcher {

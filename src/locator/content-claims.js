@@ -1,7 +1,8 @@
 // eslint-disable-next-line
 import * as API from '../api.js'
 import * as Claims from '@web3-storage/content-claims/client'
-import { DigestMap } from '@web3-storage/blob-index'
+import { DigestMap, ShardedDAGIndex } from '@web3-storage/blob-index'
+import { fetchBlob } from '../fetcher/simple.js'
 import { NotFoundError } from '../lib.js'
 
 /**
@@ -84,6 +85,45 @@ export class ContentClaimsLocator {
             }]
           })
         }
+      }
+
+      if (claim.type === 'assert/index') {
+        await this.#readClaims(claim.index.multihash)
+        const location = this.#cache.get(claim.index.multihash)
+        if (!location) continue
+
+        const fetchRes = await fetchBlob(location)
+        if (fetchRes.error) {
+          console.warn('failed to fetch index', fetchRes.error)
+          continue
+        }
+
+        const indexBytes = await fetchRes.ok.bytes()
+        const decodeRes = ShardedDAGIndex.extract(indexBytes)
+        if (decodeRes.error) {
+          console.warn('failed to decode index', decodeRes.error)
+          continue
+        }
+
+        const index = decodeRes.ok
+        await Promise.all([...index.shards].map(async ([shard, slices]) => {
+          await this.#readClaims(shard)
+          const location = this.#cache.get(shard)
+          if (!location) return
+
+          for (const [slice, pos] of slices) {
+            this.#cache.set(slice, {
+              digest: slice,
+              site: location.site.map(s => ({
+                location: s.location,
+                range: {
+                  offset: s.range.offset + pos[0],
+                  length: s.range.offset + pos[1]
+                }
+              }))
+            })
+          }
+        }))
       }
     }
     this.#claimFetched.set(digest, true)
