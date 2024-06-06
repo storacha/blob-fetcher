@@ -51,7 +51,7 @@
   "dependencies": {
     "@ucanto/interface": "^10.0.1",
     "@web3-storage/blob-index": "^1.0.2",
-    "@web3-storage/content-claims": "^5.0.0",
+    "@web3-storage/content-claims": "^5.1.0",
     "multiformats": "^13.1.0",
     "multipart-byte-range": "^3.0.1",
     "p-defer": "^4.0.1",
@@ -59,9 +59,10 @@
   },
   "devDependencies": {
     "@ipld/unixfs": "^3.0.0",
-    "@web3-storage/public-bucket": "^1.0.0",
+    "@ucanto/principal": "^9.0.1",
+    "@web3-storage/public-bucket": "^1.1.0",
     "c8": "^9.1.0",
-    "carstream": "^2.1.0",
+    "carstream": "^2.2.0",
     "entail": "^2.1.2",
     "ipfs-unixfs-exporter": "^13.5.0",
     "standard": "^17.1.0",
