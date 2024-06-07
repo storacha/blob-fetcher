@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/w3s-project/blob-fetcher/compare/v2.1.3...v2.2.0) (2024-06-06)
+
+
+### Features
+
+* use index claim ([#10](https://github.com/w3s-project/blob-fetcher/issues/10)) ([8876ec4](https://github.com/w3s-project/blob-fetcher/commit/8876ec4dd25dcec741f67f0c88c512d42ae93836))
+
 ## [2.1.3](https://github.com/w3s-project/blob-fetcher/compare/v2.1.2...v2.1.3) (2024-05-29)
 
 
