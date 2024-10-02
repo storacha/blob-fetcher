@@ -12,11 +12,6 @@ import { NotFoundError } from '../lib.js'
 /** @implements {API.Locator} */
 export class ContentClaimsLocator {
   /**
-   * Cached content claims.
-   * @type {Map<API.MultihashDigest, import('@web3-storage/content-claims/client/api').Claim[]>}
-   */
-  claims
-  /**
    * Cached location entries.
    * @type {Map<API.MultihashDigest, API.Location>}
    */
@@ -44,7 +39,6 @@ export class ContentClaimsLocator {
    * @param {{ serviceURL?: URL }} [options]
    */
   constructor (options) {
-    this.claims = new DigestMap()
     this.#cache = new DigestMap()
     this.#claimFetched = new DigestMap()
     this.#serviceURL = options?.serviceURL
@@ -88,7 +82,8 @@ export class ContentClaimsLocator {
             site: [{
               location: claim.location.map(l => new URL(l)),
               range: { offset: claim.range.offset, length: claim.range.length }
-            }]
+            }],
+            claim
           })
         }
       }
@@ -126,13 +121,13 @@ export class ContentClaimsLocator {
                   offset: s.range.offset + pos[0],
                   length: s.range.offset + pos[1]
                 }
-              }))
+              })),
+              claim
             })
           }
         }))
       }
     }
-    this.claims.set(digest, claims)
     this.#claimFetched.set(digest, true)
   }
 }

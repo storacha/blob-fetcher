@@ -1,6 +1,7 @@
 import { ByteView, MultihashDigest } from 'multiformats'
 import { Failure, Result, URI } from '@ucanto/interface'
 import { Range } from 'multipart-byte-range'
+import { Claim } from '@web3-storage/content-claims/client/api'
 
 export { ByteView, MultihashDigest } from 'multiformats'
 export { Failure, Result, URI } from '@ucanto/interface'
@@ -29,6 +30,7 @@ export interface Blob {
 export interface Location {
   digest: MultihashDigest
   site: Site[]
+  claim: Claim
 }
 
 export interface Site {
