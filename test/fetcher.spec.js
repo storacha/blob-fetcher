@@ -13,57 +13,30 @@ import * as ed25519 from '@ucanto/principal/ed25519'
 import * as SimpleFetcher from '../src/fetcher/simple.js'
 import * as BatchingFetcher from '../src/fetcher/batching.js'
 import * as ContentClaimsLocator from '../src/locator/content-claims.js'
-import { randomBytes, randomInt } from './helpers/random.js'
+import { randomBytes, randomInt, createRandomFile } from './helpers/random.js'
 import { concat } from './helpers/stream.js'
 import { settings } from './helpers/unixfs.js'
-import { contentKey, withBucketServer } from './helpers/bucket.js'
-import { generateIndexClaim, generateLocationClaim, generateLocationClaims, withClaimsServer } from './helpers/claims.js'
+import { contentKey } from './helpers/bucket.js'
+import { generateIndexClaim, generateLocationClaim, generateLocationClaims } from './helpers/claims.js'
 import { asBlockstore } from './helpers/unixfs-exporter.js'
 import * as Fetch from './helpers/fetch.js'
 import * as Result from './helpers/result.js'
+import { withContext } from './helpers/context.js'
 
 // simulates cloudflare worker environment with max 6 concurrent reqs
 Fetch.patch({ concurrency: 6, lag: 50 })
 
 export const testFetcher = {}
 
-/**
- * @typedef {import('./helpers/bucket.js').BucketServerContext & import('./helpers/claims.js').ClaimsServerContext} Context
- * @param {(assert: import('entail').assert, ctx: Context) => unknown} testfn
- */
-const withContext = testfn => withBucketServer(withClaimsServer(testfn))
-
-;[
+const typesOfFetchers = [
   { name: 'simple', FetcherFactory: SimpleFetcher },
   { name: 'batching', FetcherFactory: BatchingFetcher }
-].forEach(({ name, FetcherFactory }) => {
+]
+
+typesOfFetchers.forEach(({ name, FetcherFactory }) => {
   testFetcher[name] = {
     'should fetch a file': withContext(async (/** @type {import('entail').assert} assert */ assert, ctx) => {
-      const fileBytes = await randomBytes(10 * 1024 * 1024)
-
-      const { readable, writable } = new TransformStream({}, UnixFS.withCapacity(1048576 * 32))
-      const writer = UnixFS.createWriter({ writable, settings })
-
-      const [root, carBytes] = await Promise.all([
-        (async () => {
-          const file = UnixFS.createFileWriter(writer)
-          file.write(fileBytes)
-          const { cid } = await file.close()
-          writer.close()
-          return cid
-        })(),
-        concat(readable.pipeThrough(new CARWriterStream()))
-      ])
-      const carDigest = await sha256.digest(carBytes)
-
-      ctx.bucket.put(contentKey(carDigest), carBytes)
-
-      const signer = await ed25519.generate()
-      const index = await fromShardArchives(root, [carBytes])
-      const claims = await generateLocationClaims(signer, new URL(contentKey(carDigest), ctx.bucketURL), index)
-      for (const claim of claims) {
-        ctx.claimsStore.put(claim)
-      }
+      const { root, fileBytes } = await createRandomFile(ctx)
 
       const locator = ContentClaimsLocator.create({ serviceURL: ctx.claimsURL })
       const fetcher = FetcherFactory.create(locator)

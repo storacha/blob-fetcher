@@ -76,6 +76,7 @@ export class ContentClaimsLocator {
             location: claim.location.map(l => new URL(l)),
             range: { offset: claim.range.offset, length: claim.range.length }
           })
+          location.claims.push(claim)
         } else {
           this.#cache.set(digest, {
             digest,
@@ -83,7 +84,7 @@ export class ContentClaimsLocator {
               location: claim.location.map(l => new URL(l)),
               range: { offset: claim.range.offset, length: claim.range.length }
             }],
-            claim
+            claims: [claim]
           })
         }
       }
@@ -122,7 +123,7 @@ export class ContentClaimsLocator {
                   length: s.range.offset + pos[1]
                 }
               })),
-              claim
+              claims: [claim]
             })
           }
         }))

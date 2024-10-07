@@ -30,7 +30,7 @@ export interface Blob {
 export interface Location {
   digest: MultihashDigest
   site: Site[]
-  claim: Claim
+  claims: Claim[]
 }
 
 export interface Site {
