@@ -1,9 +1,9 @@
 import { ByteView, MultihashDigest } from 'multiformats'
-import { Failure, Result, URI } from '@ucanto/interface'
+import { Failure, Result, URI, DID } from '@ucanto/interface'
 import { Range } from 'multipart-byte-range'
 
 export { ByteView, MultihashDigest } from 'multiformats'
-export { Failure, Result, URI } from '@ucanto/interface'
+export { Failure, Result, URI, DID } from '@ucanto/interface'
 export { Range, SuffixRange, AbsoluteRange } from 'multipart-byte-range'
 
 export interface Abortable {
@@ -15,9 +15,13 @@ export interface Sliceable {
   range: Range
 }
 
-export type FetchOptions = Partial<Abortable> & Partial<Sliceable>
+export interface SpaceLimited {
+  spaces: DID[]
+}
 
-export type LocateOptions = Partial<Abortable>
+export type FetchOptions = Partial<Abortable> & Partial<Sliceable> & Partial<SpaceLimited>
+
+export type LocateOptions = Partial<Abortable> & Partial<SpaceLimited>
 
 export interface Blob {
   digest: MultihashDigest
@@ -34,6 +38,7 @@ export interface Location {
 export interface Site {
   location: URL[]
   range: ByteRange
+  space?: DID
 }
 
 export interface ByteRange {
