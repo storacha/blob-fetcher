@@ -4,11 +4,15 @@ import * as Claims from '@web3-storage/content-claims/client'
 import { DigestMap, ShardedDAGIndex } from '@web3-storage/blob-index'
 import { fetchBlob } from '../fetcher/simple.js'
 import { NotFoundError } from '../lib.js'
+import { base58btc } from 'multiformats/bases/base58'
 
 /**
  * @typedef {import('multiformats').UnknownLink} UnknownLink
  */
 
+/**
+ * @typedef {{ serviceURL?: URL, carpark?: import('@cloudflare/workers-types').R2Bucket, carparkPublicBucketURL?: URL}} LocatorOptions
+ */
 /** @implements {API.Locator} */
 export class ContentClaimsLocator {
   /**
@@ -34,14 +38,23 @@ export class ContentClaimsLocator {
    * @type {URL|undefined}
    */
   #serviceURL
-
   /**
-   * @param {{ serviceURL?: URL }} [options]
+   * @type {import('@cloudflare/workers-types').R2Bucket|undefined}
+   */
+  #carpark
+  /**
+   * @type {URL | Undefined}
+   */
+  #carparkPublicBucketURL
+  /**
+   * @param {LocatorOptions} [options]
    */
   constructor (options) {
     this.#cache = new DigestMap()
     this.#claimFetched = new DigestMap()
     this.#serviceURL = options?.serviceURL
+    this.#carpark = options?.carpark
+    this.#carparkPublicBucketURL = options?.carparkPublicBucketURL
   }
 
   /** @param {API.MultihashDigest} digest */
@@ -90,15 +103,26 @@ export class ContentClaimsLocator {
       if (claim.type === 'assert/index') {
         await this.#readClaims(claim.index.multihash)
         const location = this.#cache.get(claim.index.multihash)
-        if (!location) continue
-
-        const fetchRes = await fetchBlob(location)
-        if (fetchRes.error) {
-          console.warn('failed to fetch index', fetchRes.error)
-          continue
+        /** @type {Uint8Array} */
+        let indexBytes
+        if (!location) {
+          if (this.#carpark === undefined) {
+            continue
+          }
+          const obj = await this.#carpark.get(toBlobKey(claim.index.multihash))
+          if (!obj) {
+            continue
+          }
+          indexBytes = new Uint8Array(await obj.arrayBuffer())
+        } else {
+          const fetchRes = await fetchBlob(location)
+          if (fetchRes.error) {
+            console.warn('failed to fetch index', fetchRes.error)
+            continue
+          }
+          indexBytes = await fetchRes.ok.bytes()
         }
 
-        const indexBytes = await fetchRes.ok.bytes()
         const decodeRes = ShardedDAGIndex.extract(indexBytes)
         if (decodeRes.error) {
           console.warn('failed to decode index', decodeRes.error)
@@ -108,8 +132,24 @@ export class ContentClaimsLocator {
         const index = decodeRes.ok
         await Promise.all([...index.shards].map(async ([shard, slices]) => {
           await this.#readClaims(shard)
-          const location = this.#cache.get(shard)
-          if (!location) return
+          let location = this.#cache.get(shard)
+          if (!location) {
+            if (this.#carpark === undefined || this.#carparkPublicBucketURL === undefined) {
+              return
+            }
+            const obj = await this.#carpark.head(toBlobKey(shard))
+            if (!obj) {
+              return
+            }
+            location = {
+              digest: shard,
+              site: [{
+                location: [new URL(toBlobKey(shard), this.#carparkPublicBucketURL)],
+                range: { offset: 0, length: obj.size }
+              }]
+            }
+            this.#cache.set(shard, location)
+          }
 
           for (const [slice, pos] of slices) {
             this.#cache.set(slice, {
@@ -132,7 +172,13 @@ export class ContentClaimsLocator {
 
 /**
  * Create a new content claims blob locator.
- * @param {{ serviceURL?: URL }} [options]
+ * @param {LocatorOptions} [options]
  * @returns {API.Locator}
  */
 export const create = (options) => new ContentClaimsLocator(options)
+
+/** @param {import('multiformats').MultihashDigest} digest */
+const toBlobKey = digest => {
+  const mhStr = base58btc.encode(digest.bytes)
+  return `${mhStr}/${mhStr}.blob`
+}

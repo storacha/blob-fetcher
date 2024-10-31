@@ -49,6 +49,7 @@
     }
   },
   "dependencies": {
+    "@cloudflare/workers-types": "^4.20241022.0",
     "@ucanto/interface": "^10.0.1",
     "@web3-storage/blob-index": "^1.0.2",
     "@web3-storage/content-claims": "^5.1.0",
