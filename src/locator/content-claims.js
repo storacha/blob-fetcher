@@ -40,13 +40,18 @@ export class ContentClaimsLocator {
    */
   #carpark
   /**
-   * @param {{ serviceURL?: URL, carpark?: import('@cloudflare/workers-types').R2Bucket }} [options]
+   * @type {URL | Undefined}
+   */
+  #carparkPublicBucketURL
+  /**
+   * @param {{ serviceURL?: URL, carpark?: import('@cloudflare/workers-types').R2Bucket, carparkPublicBucketURL?: URL}} [options]
    */
   constructor (options) {
     this.#cache = new DigestMap()
     this.#claimFetched = new DigestMap()
     this.#serviceURL = options?.serviceURL
     this.#carpark = options?.carpark
+    this.#carparkPublicBucketURL = options?.carparkPublicBucketURL
   }
 
   /** @param {API.MultihashDigest} digest */
@@ -124,8 +129,23 @@ export class ContentClaimsLocator {
         const index = decodeRes.ok
         await Promise.all([...index.shards].map(async ([shard, slices]) => {
           await this.#readClaims(shard)
-          const location = this.#cache.get(shard)
-          if (!location) return
+          let location = this.#cache.get(shard)
+          if (!location) {
+            if (this.#carpark === undefined || this.#carparkPublicBucketURL === undefined) {
+              return
+            }
+            const obj = await this.#carpark.head(toBlobKey(claim.index.multihash))
+            if (!obj) {
+              return
+            }
+            location = {
+              digest: claim.index.multihash,
+              site: [{
+                location: [new URL(toBlobKey(claim.index.multihash), this.#carparkPublicBucketURL)],
+                range: { offset: 0, length: obj.size }
+              }]
+            }
+          }
 
           for (const [slice, pos] of slices) {
             this.#cache.set(slice, {
