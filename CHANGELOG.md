@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.3.0](https://github.com/storacha/blob-fetcher/compare/v2.2.0...v2.3.0) (2024-10-31)
+
+
+### Features
+
+* **content-claims:** allow carpark fallback on content claims ([f657b2a](https://github.com/storacha/blob-fetcher/commit/f657b2a75e0de9cdd8041bd3824434bc70d5a457))
+* **content-claims:** handle missing shard locations ([445d913](https://github.com/storacha/blob-fetcher/commit/445d91344cc02cd6003eac11f50699c873a27b30))
+
+
+### Bug Fixes
+
+* **content-claims:** properly set location claims for urls ([fe39b43](https://github.com/storacha/blob-fetcher/commit/fe39b43f07d14918d1d65c84775bbc77899a54a7))
+
 ## [2.2.0](https://github.com/w3s-project/blob-fetcher/compare/v2.1.3...v2.2.0) (2024-06-06)
 
 
