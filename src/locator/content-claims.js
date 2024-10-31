@@ -10,6 +10,9 @@ import { base58btc } from 'multiformats/bases/base58'
  * @typedef {import('multiformats').UnknownLink} UnknownLink
  */
 
+/**
+ * @typedef {{ serviceURL?: URL, carpark?: import('@cloudflare/workers-types').R2Bucket, carparkPublicBucketURL?: URL}} LocatorOptions
+ */
 /** @implements {API.Locator} */
 export class ContentClaimsLocator {
   /**
@@ -44,7 +47,7 @@ export class ContentClaimsLocator {
    */
   #carparkPublicBucketURL
   /**
-   * @param {{ serviceURL?: URL, carpark?: import('@cloudflare/workers-types').R2Bucket, carparkPublicBucketURL?: URL}} [options]
+   * @param {LocatorOptions} [options]
    */
   constructor (options) {
     this.#cache = new DigestMap()
@@ -134,17 +137,18 @@ export class ContentClaimsLocator {
             if (this.#carpark === undefined || this.#carparkPublicBucketURL === undefined) {
               return
             }
-            const obj = await this.#carpark.head(toBlobKey(claim.index.multihash))
+            const obj = await this.#carpark.head(toBlobKey(shard))
             if (!obj) {
               return
             }
             location = {
-              digest: claim.index.multihash,
+              digest: shard,
               site: [{
-                location: [new URL(toBlobKey(claim.index.multihash), this.#carparkPublicBucketURL)],
+                location: [new URL(toBlobKey(shard), this.#carparkPublicBucketURL)],
                 range: { offset: 0, length: obj.size }
               }]
             }
+            this.#cache.set(shard, location)
           }
 
           for (const [slice, pos] of slices) {
@@ -168,7 +172,7 @@ export class ContentClaimsLocator {
 
 /**
  * Create a new content claims blob locator.
- * @param {{ serviceURL?: URL }} [options]
+ * @param {LocatorOptions} [options]
  * @returns {API.Locator}
  */
 export const create = (options) => new ContentClaimsLocator(options)
