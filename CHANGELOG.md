@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/storacha/blob-fetcher/compare/v2.3.0...v2.3.1) (2024-10-31)
+
+
+### Bug Fixes
+
+* **release:** just release the damn package ([b8405a0](https://github.com/storacha/blob-fetcher/commit/b8405a09169f14a965942ebd988f9d07033aface))
+
 ## [2.3.0](https://github.com/storacha/blob-fetcher/compare/v2.2.0...v2.3.0) (2024-10-31)
 
 
