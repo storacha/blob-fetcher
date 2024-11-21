@@ -1,72 +1,16 @@
-import { z } from 'zod'
-import * as DID from '@ipld/dag-ucan/did'
-import { CID } from 'multiformats/cid'
 import { Client } from '@storacha/indexing-service-client'
-import * as API from '../api.js'
-import { NetworkError } from '../lib.js'
+import { NotFoundError } from '../../lib.js'
 import { DigestMap } from '@web3-storage/blob-index'
 import * as Digest from 'multiformats/hashes/digest'
+import { AssertLocation } from './schemas.js'
 
 /**
+ * @import { z } from 'zod'
  * @import { MultihashDigest } from 'multiformats'
  * @import { Result, Principal } from '@ucanto/interface'
- * @import * as UCAN from "@ipld/dag-ucan"
+ * @import { ShardDigest, Position } from '@web3-storage/blob-index/types'
+ * @import * as API from '../../api.js'
  */
-
-/**
- * Zod schema for the bytes of a DID. Transforms to a
- * {@link UCAN.PrincipalView<ID>}
- */
-const DIDBytes = z.instanceof(Uint8Array).transform((bytes, ctx) => {
-  try {
-    return DID.decode(bytes)
-  } catch (error) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Invalid DID encoding.',
-      params: { decodeError: error }
-    })
-    return z.NEVER
-  }
-})
-
-const CIDObject = z.unknown().transform((cid, ctx) => {
-  const cidOrNull = CID.asCID(cid)
-  if (cidOrNull) {
-    return cidOrNull
-  } else {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Invalid CID.'
-    })
-    return z.NEVER
-  }
-})
-
-/**
- * Zod schema for a location assertion capability.
- */
-const AssertLocation = z.object({
-  can: z.literal('assert/location'),
-  nb: z.object({
-    // TK: Actually, a full link is allowed here by the (other) schema.
-    content: z.object({ digest: z.instanceof(Uint8Array) }),
-    location: z.array(z.string()),
-    space: DIDBytes.optional()
-  })
-})
-
-/**
- * Zod schema for an index assertion capability.
- */
-const AssertIndex = z.object({
-  can: z.literal('assert/index'),
-  with: z.unknown(),
-  nb: z.object({
-    content: CIDObject,
-    index: CIDObject
-  })
-})
 
 /**
  * @typedef {Object} LocatorOptions
@@ -81,6 +25,7 @@ const AssertIndex = z.object({
 export class IndexingServiceLocator {
   #client
   #spaces
+  /** @type {DigestMap<MultihashDigest, { shardDigest: ShardDigest; position: Position; }>} */
   #knownSlices
   /** @type {DigestMap<MultihashDigest, z.infer<typeof AssertLocation>>} */
   #knownLocationClaimsCaps
@@ -88,7 +33,7 @@ export class IndexingServiceLocator {
   /**
    * @param {LocatorOptions} [options]
    */
-  constructor({ serviceURL, spaces, fetch } = {}) {
+  constructor ({ serviceURL, spaces, fetch } = {}) {
     this.#client = new Client({ serviceURL, fetch })
     this.#spaces = spaces
     this.#knownSlices = new DigestMap()
@@ -96,7 +41,8 @@ export class IndexingServiceLocator {
   }
 
   /** @type {API.Locator['locate']} */
-  async locate(digest) {
+  async locate (digest) {
+    // If we don't know about it yet, fetch claims and indexes.
     if (!this.#knownSlices.has(digest)) {
       const result = await this.#client.queryClaims({
         hashes: [digest],
@@ -104,7 +50,7 @@ export class IndexingServiceLocator {
       })
 
       // TK: What to do with errors that `locate()` doesn't know about?
-      if (result.error) throw result.error
+      if (result.error) throw new Error('TK')
 
       // TK: Have we validated the claims?
 
@@ -129,11 +75,12 @@ export class IndexingServiceLocator {
       }
     }
 
-    const { shardDigest, position } = this.#knownSlices.get(digest) || {}
-    if (!shardDigest || !position) throw new Error('TK')
+    // If we still don't know about it, it doesn't exist.
+    const slice = this.#knownSlices.get(digest)
+    const contentLocationClaim =
+      slice && this.#knownLocationClaimsCaps.get(slice.shardDigest)
 
-    const contentLocationClaim = this.#knownLocationClaimsCaps.get(shardDigest)
-    if (!contentLocationClaim) throw new Error('TK')
+    if (!contentLocationClaim) return { error: new NotFoundError(digest) }
 
     return {
       ok: {
@@ -143,7 +90,7 @@ export class IndexingServiceLocator {
             location: contentLocationClaim.nb.location.map(
               (loc) => new URL(loc)
             ),
-            range: { offset: position[0], length: position[1] },
+            range: { offset: slice.position[0], length: slice.position[1] },
             space: contentLocationClaim.nb.space?.did()
           }
         ]

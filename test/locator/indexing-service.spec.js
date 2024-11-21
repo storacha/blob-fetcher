@@ -7,7 +7,7 @@ import * as QueryResult from '@storacha/indexing-service-client/query-result'
 import { Assert } from '@web3-storage/content-claims/capability'
 import { createTestCID } from '../util/createTestCID.js'
 import { ShardedDAGIndex } from '@web3-storage/blob-index'
-import { IndexingServiceLocator } from '../../src/locator/indexing-service.js'
+import { IndexingServiceLocator } from '../../src/locator/indexing-service/index.js'
 
 /**
  * @import { Suite, Result, Assert as AssertObj } from 'entail'
@@ -38,7 +38,7 @@ URL.prototype.toJSON = function () {
  */
 const assertResultOk = (result, assert) => {
   if (result.error) {
-    assert.fail(new Error(`Result was an error`, { cause: result.error }))
+    assert.fail(new Error('Result was an error', { cause: result.error }))
   }
 }
 
@@ -47,7 +47,7 @@ const assertResultOk = (result, assert) => {
  * @param {Record<string, () => Await<BodyInit | null>>} responses
  * @returns {typeof globalThis.fetch}
  */
-function stubFetch(responses) {
+function stubFetch (responses) {
   return async (requested) => {
     const responseData = responses[requested.toString()]
     if (responseData) {
