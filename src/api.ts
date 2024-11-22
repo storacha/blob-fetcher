@@ -19,9 +19,9 @@ export interface SpaceLimited {
   spaces: DID[]
 }
 
-export type FetchOptions = Partial<Abortable> & Partial<Sliceable> & Partial<SpaceLimited>
+export type FetchOptions = Partial<Abortable & Sliceable & SpaceLimited>
 
-export type LocateOptions = Partial<Abortable> & Partial<SpaceLimited>
+export type LocateOptions = Partial<Abortable & SpaceLimited>
 
 export interface Blob {
   digest: MultihashDigest
