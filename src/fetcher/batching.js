@@ -19,7 +19,7 @@ const MAX_BATCH_SIZE = 16
 class BatchingFetcher {
   #locator
 
-  /** @type {Map<API.MultihashDigest, RangedRequests>} */
+  /** @type {DigestMap<API.MultihashDigest, RangedRequests>} */
   #pendingReqs = new DigestMap()
 
   /** @type {Array<{ location: API.Location, range?: API.Range }>} */

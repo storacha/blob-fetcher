@@ -17,5 +17,5 @@ export const patch = ({ concurrency, lag }) => {
     total++
     await new Promise(resolve => setTimeout(resolve, lag))
     return fetch(...args)
-  })
+  }, { throwOnTimeout: true })
 }

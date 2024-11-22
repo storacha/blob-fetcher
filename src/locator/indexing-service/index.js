@@ -4,12 +4,15 @@ import { DigestMap } from '@web3-storage/blob-index'
 import * as Digest from 'multiformats/hashes/digest'
 import { AssertLocation } from './schemas.js'
 
+// Only imported for type information, but a TS bug prevents us from using
+// `@import` for this: https://github.com/microsoft/TypeScript/issues/60563
+import * as API from '../../api.js'
+
 /**
  * @import { z } from 'zod'
  * @import { MultihashDigest } from 'multiformats'
  * @import { Result, Principal } from '@ucanto/interface'
  * @import { ShardDigest, Position } from '@web3-storage/blob-index/types'
- * @import * as API from '../../api.js'
  */
 
 /**

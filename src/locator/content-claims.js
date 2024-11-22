@@ -17,7 +17,7 @@ import { base58btc } from 'multiformats/bases/base58'
 export class ContentClaimsLocator {
   /**
    * Cached location entries.
-   * @type {Map<API.MultihashDigest, API.Location>}
+   * @type {DigestMap<API.MultihashDigest, API.Location>}
    */
   #cache
   /**
@@ -31,7 +31,7 @@ export class ContentClaimsLocator {
    * Note: implemented as a Map not a Set so that we take advantage of the
    * key cache that `DigestMap` provides, so we don't duplicate base58 encoded
    * multihash keys.
-   * @type {Map<API.MultihashDigest, true>}
+   * @type {DigestMap<API.MultihashDigest, true>}
    */
   #claimFetched
   /**

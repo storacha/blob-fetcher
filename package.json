@@ -71,7 +71,7 @@
     "entail": "^2.1.2",
     "ipfs-unixfs-exporter": "^13.5.0",
     "standard": "^17.1.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.7.2"
   },
   "standard": {
     "ignore": [
