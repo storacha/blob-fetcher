@@ -3,15 +3,18 @@ import * as path from 'node:path'
 import { base58btc } from 'multiformats/bases/base58'
 import * as Digest from 'multiformats/hashes/digest'
 import * as ed25519 from '@ucanto/principal/ed25519'
+import { Client } from '@storacha/indexing-service-client'
 import * as QueryResult from '@storacha/indexing-service-client/query-result'
 import { Assert } from '@web3-storage/content-claims/capability'
 import { createTestCID } from '../util/createTestCID.js'
 import { ShardedDAGIndex } from '@web3-storage/blob-index'
 import { IndexingServiceLocator } from '../../src/locator/indexing-service/index.js'
+import { NotFoundError } from '../../src/lib.js'
 
 /**
  * @import { Suite, Result, Assert as AssertObj } from 'entail'
  * @import { Await } from '@ipld/dag-ucan'
+ * @import { Query, QueryResult as QueryResultObj } from '@storacha/indexing-service-client/api'
  */
 
 // Overcome a bug in uvu: While printing an object diff for a failure message,
@@ -53,27 +56,47 @@ function stubFetch (responses) {
     if (responseData) {
       return new Response(await responseData())
     } else {
-      throw new Error(`Unexpected request: ${requested}`)
+      throw new Error(
+        `Unexpected request: ${requested}\nExpected one of:\n${Object.keys(
+          responses
+        )
+          .map((urlString) => `- ${urlString}`)
+          .join('\n')}`
+      )
     }
   }
 }
 
+/**
+ * @param {Parameters<typeof QueryResult.from>[0]} queryResultContents
+ * @param {AssertObj} assert
+ */
+async function archivedQueryResultFrom (queryResultContents, assert) {
+  const queryResultResult = await QueryResult.from(queryResultContents)
+  assertResultOk(queryResultResult, assert)
+  const archiveResult = await queryResultResult.ok.archive()
+  assertResultOk(archiveResult, assert)
+  return archiveResult.ok
+}
+
+const digestString = 'zQmRm3SMS4EbiKYy7VeV3zqXqzyr76mq9b2zg3Tij3VhKUG'
+const digest = Digest.decode(base58btc.decode(digestString))
+const fixturePath = path.join(
+  import.meta.dirname,
+  '..',
+  'fixtures',
+  `${digestString}.queryresult.car`
+)
+
 /** @type {Suite} */
 export const testIndexingServiceLocator = {
   'can locate a single Slice': async (assert) => {
-    const digestString = 'zQmRm3SMS4EbiKYy7VeV3zqXqzyr76mq9b2zg3Tij3VhKUG'
-    const digest = Digest.decode(base58btc.decode(digestString))
-    const fixturePath = path.join(
-      import.meta.dirname,
-      '..',
-      'fixtures',
-      `${digestString}.queryresult.car`
-    )
-
     const locator = new IndexingServiceLocator({
-      fetch: stubFetch({
-        'https://indexing.storacha.network/claims?multihash=zQmRm3SMS4EbiKYy7VeV3zqXqzyr76mq9b2zg3Tij3VhKUG':
-          () => fs.promises.readFile(fixturePath)
+      client: new Client({
+        fetch: stubFetch({
+          'https://indexing.storacha.network/claims?multihash=zQmRm3SMS4EbiKYy7VeV3zqXqzyr76mq9b2zg3Tij3VhKUG':
+            () => fs.promises.readFile(fixturePath)
+        })
       })
     })
 
@@ -113,7 +136,7 @@ export const testIndexingServiceLocator = {
     index2.setSlice(shard3Link.multihash, content4Link.multihash, [410, 420])
 
     const indexingService = await ed25519.Signer.generate()
-    const queryResultResult = await QueryResult.from({
+    const queryResultContents = {
       claims: [
         await Assert.location
           .invoke({
@@ -160,35 +183,33 @@ export const testIndexingServiceLocator = {
         ['the context id', index1],
         ['another context id', index2]
       ])
-    })
-
-    assertResultOk(queryResultResult, assert)
-    const archiveResult = await queryResultResult.ok.archive()
-    assertResultOk(archiveResult, assert)
+    }
 
     const locator = new IndexingServiceLocator({
-      fetch: stubFetch({
-        [`https://indexing.storacha.network/claims?multihash=${base58btc.encode(
-          content1Link.multihash.bytes
-        )}`]: () => archiveResult.ok,
-        [`https://indexing.storacha.network/claims?multihash=${base58btc.encode(
-          content2Link.multihash.bytes
-        )}`]: () => {
-          assert.fail(new Error('Should not have requested content2'))
-          return null
-        },
-        [`https://indexing.storacha.network/claims?multihash=${base58btc.encode(
-          content3Link.multihash.bytes
-        )}`]: () => {
-          assert.fail(new Error('Should not have requested content3'))
-          return null
-        },
-        [`https://indexing.storacha.network/claims?multihash=${base58btc.encode(
-          content4Link.multihash.bytes
-        )}`]: () => {
-          assert.fail(new Error('Should not have requested content4'))
-          return null
-        }
+      client: new Client({
+        fetch: stubFetch({
+          [`https://indexing.storacha.network/claims?multihash=${base58btc.encode(
+            content1Link.multihash.bytes
+          )}`]: () => archivedQueryResultFrom(queryResultContents, assert),
+          [`https://indexing.storacha.network/claims?multihash=${base58btc.encode(
+            content2Link.multihash.bytes
+          )}`]: () => {
+            assert.fail(new Error('Should not have requested content2'))
+            return null
+          },
+          [`https://indexing.storacha.network/claims?multihash=${base58btc.encode(
+            content3Link.multihash.bytes
+          )}`]: () => {
+            assert.fail(new Error('Should not have requested content3'))
+            return null
+          },
+          [`https://indexing.storacha.network/claims?multihash=${base58btc.encode(
+            content4Link.multihash.bytes
+          )}`]: () => {
+            assert.fail(new Error('Should not have requested content4'))
+            return null
+          }
+        })
       })
     })
 
@@ -249,5 +270,41 @@ export const testIndexingServiceLocator = {
         ]
       }
     })
+  },
+  'can limit to spaces': async (assert) => {
+    const locator = new IndexingServiceLocator({
+      spaces: ['did:key:zSpace1', 'did:key:zSpace2'],
+      client: new Client({
+        fetch: stubFetch({
+          ['https://indexing.storacha.network/claims' +
+          '?multihash=zQmRm3SMS4EbiKYy7VeV3zqXqzyr76mq9b2zg3Tij3VhKUG' +
+          '&spaces=did%3Akey%3AzSpace1' +
+          '&spaces=did%3Akey%3AzSpace2']: async () =>
+            archivedQueryResultFrom({}, assert)
+        })
+      })
+    })
+
+    const result = await locator.locate(digest)
+    assert.ok(result.error instanceof NotFoundError)
+  },
+  'can futher scope to spaces': async (assert) => {
+    const locator = new IndexingServiceLocator({
+      spaces: ['did:key:zSpace1', 'did:key:zSpace2'],
+      client: new Client({
+        fetch: stubFetch({
+          ['https://indexing.storacha.network/claims' +
+          '?multihash=zQmRm3SMS4EbiKYy7VeV3zqXqzyr76mq9b2zg3Tij3VhKUG' +
+          '&spaces=did%3Akey%3AzSpace1' +
+          '&spaces=did%3Akey%3AzSpace2' +
+          '&spaces=did%3Akey%3AzSpace3' +
+          '&spaces=did%3Akey%3AzSpace4']: () =>
+            archivedQueryResultFrom({}, assert)
+        })
+      })
+    }).scopeToSpaces(['did:key:zSpace1', 'did:key:zSpace3', 'did:key:zSpace4'])
+
+    const result = await locator.locate(digest)
+    assert.ok(result.error instanceof NotFoundError)
   }
 }

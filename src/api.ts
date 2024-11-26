@@ -3,7 +3,7 @@ import { Failure, Result, URI, DID } from '@ucanto/interface'
 import { Range } from 'multipart-byte-range'
 
 export { ByteView, MultihashDigest } from 'multiformats'
-export { Failure, Result, URI, DID } from '@ucanto/interface'
+export { Failure, Result, URI, DID, Principal } from '@ucanto/interface'
 export { Range, SuffixRange, AbsoluteRange } from 'multipart-byte-range'
 
 export interface Abortable {
@@ -49,6 +49,11 @@ export interface ByteRange {
 export interface Locator {
   /** Retrieves the location of a blob of content. */
   locate (digest: MultihashDigest, options?: LocateOptions): Promise<Result<Location, NotFound|Aborted|NetworkError>>
+  /**
+   * Returns a similar locator which only locates content belonging to the given
+   * Spaces.
+   */
+  scopeToSpaces(spaces: DID[]): Locator
 }
 
 export interface Fetcher {

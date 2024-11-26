@@ -6,22 +6,21 @@ import { AssertLocation } from './schemas.js'
 
 // Only imported for type information, but a TS bug prevents us from using
 // `@import` for this: https://github.com/microsoft/TypeScript/issues/60563
+// eslint-disable-next-line no-unused-vars
 import * as API from '../../api.js'
 
 /**
  * @import { z } from 'zod'
  * @import { MultihashDigest } from 'multiformats'
- * @import { Result, Principal } from '@ucanto/interface'
+ * @import { Result, DID } from '@ucanto/interface'
  * @import { ShardDigest, Position } from '@web3-storage/blob-index/types'
  */
 
 /**
  * @typedef {Object} LocatorOptions
- * @property {URL} [serviceURL] The URL of the Indexing Service.
- * @property {Principal[]} [spaces] The Spaces to search for the content. If
+ * @property {Client} [client] An Indexing Service client instance.
+ * @property {DID[]} [spaces] The Spaces to search for the content. If
  * missing, the locator will search all Spaces.
- * @property {typeof globalThis.fetch} [fetch] The fetch function to use for
- * HTTP requests. Defaults to `globalThis.fetch`.
  */
 
 /** @implements {API.Locator} */
@@ -36,9 +35,9 @@ export class IndexingServiceLocator {
   /**
    * @param {LocatorOptions} [options]
    */
-  constructor ({ serviceURL, spaces, fetch } = {}) {
-    this.#client = new Client({ serviceURL, fetch })
-    this.#spaces = spaces
+  constructor ({ client, spaces } = {}) {
+    this.#client = client ?? new Client()
+    this.#spaces = spaces ?? []
     this.#knownSlices = new DigestMap()
     this.#knownLocationClaimsCaps = new DigestMap()
   }
@@ -99,5 +98,13 @@ export class IndexingServiceLocator {
         ]
       }
     }
+  }
+
+  /** @type {API.Locator['scopeToSpaces']} */
+  scopeToSpaces (spaces) {
+    return new IndexingServiceLocator({
+      client: this.#client,
+      spaces: [...new Set([...this.#spaces, ...spaces]).values()]
+    })
   }
 }
