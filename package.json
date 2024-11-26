@@ -46,6 +46,10 @@
     "./locator/content-claims": {
       "import": "./src/locator/content-claims.js",
       "types": "./dist/src/locator/content-claims.d.ts"
+    },
+    "./locator/indexing-service": {
+      "import": "./src/locator/indexing-service/index.js",
+      "types": "./dist/src/locator/indexing-service/index.d.ts"
     }
   },
   "dependencies": {
