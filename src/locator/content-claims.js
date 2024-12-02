@@ -159,7 +159,7 @@ export class ContentClaimsLocator {
                 location: s.location,
                 range: {
                   offset: s.range.offset + pos[0],
-                  length: s.range.offset + pos[1]
+                  length: pos[1]
                 }
               }))
             })
