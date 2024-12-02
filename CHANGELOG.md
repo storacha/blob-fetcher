@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.4.0](https://github.com/storacha/blob-fetcher/compare/v2.3.1...v2.4.0) (2024-12-02)
+
+
+### Features
+
+* **api:** add space to options and site ([13ad2f0](https://github.com/storacha/blob-fetcher/commit/13ad2f0f03bf7c5063d3e12111feb569ae5a19a2))
+
+
+### Bug Fixes
+
+* slice length ([#20](https://github.com/storacha/blob-fetcher/issues/20)) ([ee1ffcc](https://github.com/storacha/blob-fetcher/commit/ee1ffcc593a205b5918c869c13e13281ffaa640c))
+
 ## [2.3.1](https://github.com/storacha/blob-fetcher/compare/v2.3.0...v2.3.1) (2024-10-31)
 
 
