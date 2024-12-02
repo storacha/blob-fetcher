@@ -7,7 +7,8 @@ import { NotFoundError } from '../lib.js'
 import { base58btc } from 'multiformats/bases/base58'
 
 /**
- * @typedef {import('multiformats').UnknownLink} UnknownLink
+ * @import { DID } from '@ucanto/interface'
+ * @import { UnknownLink } from 'multiformats'
  */
 
 /**
@@ -17,7 +18,7 @@ import { base58btc } from 'multiformats/bases/base58'
 export class ContentClaimsLocator {
   /**
    * Cached location entries.
-   * @type {Map<API.MultihashDigest, API.Location>}
+   * @type {DigestMap<API.MultihashDigest, API.Location>}
    */
   #cache
   /**
@@ -31,7 +32,7 @@ export class ContentClaimsLocator {
    * Note: implemented as a Map not a Set so that we take advantage of the
    * key cache that `DigestMap` provides, so we don't duplicate base58 encoded
    * multihash keys.
-   * @type {Map<API.MultihashDigest, true>}
+   * @type {DigestMap<API.MultihashDigest, true>}
    */
   #claimFetched
   /**
@@ -168,6 +169,11 @@ export class ContentClaimsLocator {
     }
     this.#claimFetched.set(digest, true)
   }
+
+  /** @type {API.Locator['scopeToSpaces']} */
+  scopeToSpaces (spaces) {
+    return spaceFilteredLocator(this, spaces)
+  }
 }
 
 /**
@@ -182,3 +188,32 @@ const toBlobKey = digest => {
   const mhStr = base58btc.encode(digest.bytes)
   return `${mhStr}/${mhStr}.blob`
 }
+
+/**
+ * Wraps a {@link Locator} to filter results to the given Spaces.
+ *
+ * @param {API.Locator} locator
+ * @param {DID[]} spaces
+ * @returns {API.Locator}
+ */
+const spaceFilteredLocator = (locator, spaces) => ({
+  async locate (digest) {
+    const locateResult = await locator.locate(digest)
+    if (locateResult.error) {
+      return locateResult
+    } else {
+      return {
+        ok: {
+          ...locateResult.ok,
+          site: locateResult.ok.site.filter(
+            (site) =>
+              site.space && spaces.includes(site.space)
+          )
+        }
+      }
+    }
+  },
+  scopeToSpaces (spaces) {
+    return spaceFilteredLocator(this, spaces)
+  }
+})

@@ -18,10 +18,10 @@ import { Assert } from '@web3-storage/content-claims/capability'
 
 /**
  * @template {{}} T
- * @param {(assert: import('entail').assert, ctx: T & ClaimsServerContext) => unknown} testfn
+ * @param {(assert: import('entail').Assert, ctx: T & ClaimsServerContext) => unknown} testfn
  */
 export const withClaimsServer = testfn =>
-  /** @type {(assert: import('entail').assert, ctx: T) => unknown} */
+  /** @type {(assert: import('entail').Assert, ctx: T) => unknown} */
   // eslint-disable-next-line no-extra-parens
   (async (assert, ctx) => {
     const claimsStore = new ClaimStorage()
@@ -46,7 +46,7 @@ export const withClaimsServer = testfn =>
 /** @implements {ClaimFetcher} */
 class ClaimStorage {
   constructor () {
-    /** @type {Map<API.MultihashDigest, import('@web3-storage/content-claims/server/api').Claim[]>} */
+    /** @type {DigestMap<API.MultihashDigest, import('@web3-storage/content-claims/server/api').Claim[]>} */
     this.data = new DigestMap()
   }
 

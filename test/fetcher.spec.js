@@ -25,11 +25,12 @@ import * as Result from './helpers/result.js'
 // simulates cloudflare worker environment with max 6 concurrent reqs
 Fetch.patch({ concurrency: 6, lag: 50 })
 
+/** @type {import('entail').Suite} */
 export const testFetcher = {}
 
 /**
  * @typedef {import('./helpers/bucket.js').BucketServerContext & import('./helpers/claims.js').ClaimsServerContext} Context
- * @param {(assert: import('entail').assert, ctx: Context) => unknown} testfn
+ * @param {(assert: import('entail').Assert, ctx: Context) => unknown} testfn
  */
 const withContext = testfn => withBucketServer(withClaimsServer(testfn))
 
@@ -38,7 +39,7 @@ const withContext = testfn => withBucketServer(withClaimsServer(testfn))
   { name: 'batching', FetcherFactory: BatchingFetcher }
 ].forEach(({ name, FetcherFactory }) => {
   testFetcher[name] = {
-    'should fetch a file': withContext(async (/** @type {import('entail').assert} assert */ assert, ctx) => {
+    'should fetch a file': withContext(async (assert, ctx) => {
       const fileBytes = await randomBytes(10 * 1024 * 1024)
 
       const { readable, writable } = new TransformStream({}, UnixFS.withCapacity(1048576 * 32))
@@ -74,7 +75,7 @@ const withContext = testfn => withBucketServer(withClaimsServer(testfn))
       assert.ok(equals(exportedBytes, fileBytes))
     }),
 
-    'should fetch bytes with range': withContext(async (/** @type {import('entail').assert} assert */ assert, ctx) => {
+    'should fetch bytes with range': withContext(async (assert, ctx) => {
       const bytes = await randomBytes(1 * 1024 * 1024)
       const root = Link.create(raw.code, await sha256.digest(bytes))
 
@@ -108,7 +109,7 @@ const withContext = testfn => withBucketServer(withClaimsServer(testfn))
       assert.deepEqual(await blob.bytes(), bytes.slice(range[0], range[1] + 1))
     }),
 
-    'should benchmark 500MB': withContext(async (/** @type {import('entail').assert} assert */ assert, ctx) => {
+    'should benchmark 500MB': withContext(async (assert, ctx) => {
       Fetch.resetCount()
       const fileBytes = await randomBytes(500 * 1024 * 1024)
 
@@ -148,7 +149,7 @@ const withContext = testfn => withBucketServer(withClaimsServer(testfn))
       console.log(`sub-requests: ${Fetch.count()}`)
     }),
 
-    'should benchmark 500MB with index': withContext(async (/** @type {import('entail').assert} assert */ assert, ctx) => {
+    'should benchmark 500MB with index': withContext(async (assert, ctx) => {
       Fetch.resetCount()
       const fileBytes = await randomBytes(500 * 1024 * 1024)
 

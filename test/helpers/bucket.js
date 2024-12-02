@@ -5,9 +5,9 @@ import { base58btc } from 'multiformats/bases/base58'
 
 /** @typedef {{ bucket: MemoryBucket, bucketURL: URL }} BucketServerContext */
 
-/** @param {(assert: import('entail').assert, ctx: BucketServerContext) => unknown} testfn */
+/** @param {(assert: import('entail').Assert, ctx: BucketServerContext) => unknown} testfn */
 export const withBucketServer = testfn =>
-  /** @type {(assert: import('entail').assert) => unknown} */
+  /** @type {(assert: import('entail').Assert) => unknown} */
   // eslint-disable-next-line
   (async (assert) => {
     const bucket = new MemoryBucket()
