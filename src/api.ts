@@ -1,6 +1,7 @@
 import { ByteView, MultihashDigest } from 'multiformats'
 import { Failure, Result, URI, DID } from '@ucanto/interface'
 import { Range } from 'multipart-byte-range'
+import { QueryError } from '@storacha/indexing-service-client/api'
 
 export { ByteView, MultihashDigest } from 'multiformats'
 export { Failure, Result, URI, DID, Principal } from '@ucanto/interface'
@@ -48,7 +49,7 @@ export interface ByteRange {
 
 export interface Locator {
   /** Retrieves the location of a blob of content. */
-  locate (digest: MultihashDigest, options?: LocateOptions): Promise<Result<Location, NotFound|Aborted|NetworkError>>
+  locate (digest: MultihashDigest, options?: LocateOptions): Promise<Result<Location, NotFound|Aborted|NetworkError|QueryError>>
   /**
    * Returns a similar locator which only locates content belonging to the given
    * Spaces.

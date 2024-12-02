@@ -38,7 +38,6 @@ export const CIDObject = z.unknown().transform((cid, ctx) => {
 export const AssertLocation = z.object({
   can: z.literal('assert/location'),
   nb: z.object({
-    // TK: Actually, a full link is allowed here by the (other) schema.
     content: z.object({ digest: z.instanceof(Uint8Array) }),
     location: z.array(z.string()),
     space: DIDBytes.optional()

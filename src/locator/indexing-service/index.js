@@ -51,10 +51,7 @@ export class IndexingServiceLocator {
         match: this.#spaces && { subject: this.#spaces }
       })
 
-      // TK: What to do with errors that `locate()` doesn't know about?
-      if (result.error) throw new Error('TK')
-
-      // TK: Have we validated the claims?
+      if (result.error) return result
 
       for (const claim of result.ok.claims.values()) {
         for (const cap of claim.capabilities) {

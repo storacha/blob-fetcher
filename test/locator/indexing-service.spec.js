@@ -14,7 +14,6 @@ import { NotFoundError } from '../../src/lib.js'
 /**
  * @import { Suite, Result, Assert as AssertObj } from 'entail'
  * @import { Await } from '@ipld/dag-ucan'
- * @import { Query, QueryResult as QueryResultObj } from '@storacha/indexing-service-client/api'
  */
 
 // Overcome a bug in uvu: While printing an object diff for a failure message,
@@ -149,7 +148,6 @@ export const testIndexingServiceLocator = {
                 'http://example.com/shard1/replica1',
                 'http://example.com/shard1/replica2'
               ]
-              // TK: Schema needs to be updated to include `space`
             }
           })
           .delegate(),
@@ -161,7 +159,6 @@ export const testIndexingServiceLocator = {
             nb: {
               content: { digest: shard2Link.multihash.bytes },
               location: ['http://example.com/shard2/replica1']
-              // TK: Schema needs to be updated to include `space`
             }
           })
           .delegate(),
@@ -173,12 +170,10 @@ export const testIndexingServiceLocator = {
             nb: {
               content: { digest: shard3Link.multihash.bytes },
               location: ['http://example.com/shard3/replica1']
-              // TK: Schema needs to be updated to include `space`
             }
           })
           .delegate()
       ],
-      // TK What is the context id?
       indexes: new Map([
         ['the context id', index1],
         ['another context id', index2]
