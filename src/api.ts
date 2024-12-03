@@ -47,9 +47,11 @@ export interface ByteRange {
   length: number
 }
 
+type FetchError = NotFound | Aborted | NetworkError | QueryError
+
 export interface Locator {
   /** Retrieves the location of a blob of content. */
-  locate (digest: MultihashDigest, options?: LocateOptions): Promise<Result<Location, NotFound|Aborted|NetworkError|QueryError>>
+  locate (digest: MultihashDigest, options?: LocateOptions): Promise<Result<Location, FetchError>>
   /**
    * Returns a similar locator which only locates content belonging to the given
    * Spaces.
@@ -59,7 +61,7 @@ export interface Locator {
 
 export interface Fetcher {
   /** Fetches the bytes that correspond to the passed multihash digest. */
-  fetch (digest: MultihashDigest, options?: FetchOptions): Promise<Result<Blob, NotFound|Aborted|NetworkError>>
+  fetch (digest: MultihashDigest, options?: FetchOptions): Promise<Result<Blob, FetchError>>
 }
 
 export interface NotFound extends Failure {
