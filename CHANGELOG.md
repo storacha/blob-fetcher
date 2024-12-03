@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.3](https://github.com/storacha/blob-fetcher/compare/v2.4.2...v2.4.3) (2024-12-03)
+
+
+### Bug Fixes
+
+* Fix build error ([a96fc06](https://github.com/storacha/blob-fetcher/commit/a96fc0641e7682faab04f4e347ff0b3a823e1415))
+
 ## [2.4.2](https://github.com/storacha/blob-fetcher/compare/v2.4.1...v2.4.2) (2024-12-03)
 
 
