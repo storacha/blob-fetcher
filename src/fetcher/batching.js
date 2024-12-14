@@ -68,6 +68,7 @@ class BatchingFetcher {
     const pendingReqs = this.#pendingReqs
     this.#pendingReqs = new DigestMap()
 
+    const responses = []
     while (true) {
       const first = queue.shift()
       if (!first) break
@@ -86,11 +87,18 @@ class BatchingFetcher {
         if (locs.length >= MAX_BATCH_SIZE) break
       }
 
-      const res = await fetchBlobs(siteURL, locs)
+      responses.push({
+        promise: fetchBlobs(siteURL, locs),
+        locs
+      })
+    }
+
+    for (const response of responses) {
+      const res = await response.promise
       if (res.error) break
       for (const [i, blob] of res.ok.entries()) {
         const rangeReqs = pendingReqs.get(blob.digest)
-        const key = rangeKey(locs[i].range)
+        const key = rangeKey(response.locs[i].range)
         const reqs = rangeReqs?.get(key)
         reqs?.[0].resolve({ ok: blob })
         reqs?.slice(1).forEach(r => r.resolve({ ok: blob.clone() }))
