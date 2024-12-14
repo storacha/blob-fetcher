@@ -7,6 +7,7 @@ import { NetworkError, NotFoundError } from '../lib.js'
 import { fetchBlob } from './simple.js'
 import { resolveRange } from './lib.js'
 import { withResultSpan } from '../tracing/tracing.js'
+import { Uint8ArrayList } from 'uint8arraylist'
 
 /**
  * @typedef {'*'|`${number},${number}`|`${number}`} RangeKey
@@ -140,6 +141,8 @@ class BatchingFetcher {
  */
 export const create = (locator) => new BatchingFetcher(locator)
 
+/** @typedef {{range: import('multipart-byte-range').AbsoluteRange, digest: API.MultihashDigest}} ResolvedRange */
+
 /**
  * Fetch blobs from the passed locations. The locations MUST share a common
  * site to fetch from.
@@ -157,6 +160,7 @@ export const fetchBlobs = withResultSpan('fetchBlobs',
       return { ok: [res.ok] }
     }
 
+    /** @type {ResolvedRange[]>} */
     const ranges = []
     for (const { location, range } of locations) {
       for (const s of location.site) {
@@ -169,7 +173,10 @@ export const fetchBlobs = withResultSpan('fetchBlobs',
               const relRange = resolveRange(range, s.range.length)
               resolvedRange = [s.range.offset + relRange[0], s.range.offset + relRange[1]]
             }
-            ranges.push(resolvedRange)
+            ranges.push({
+              digest: location.digest,
+              range: resolvedRange
+            })
             found = true
             break
           }
@@ -181,13 +188,15 @@ export const fetchBlobs = withResultSpan('fetchBlobs',
       throw new Error('no common site')
     }
 
-    const headers = { Range: `bytes=${ranges.map(r => `${r[0]}-${r[1]}`).join(',')}` }
+    ranges.sort((a, b) => a.range[0] - b.range[0])
+    const aggregateRangeEnd = ranges.reduce((aggregateEnd, r) => r.range[1] > aggregateEnd ? r.range[1] : aggregateEnd, 0)
+    const headers = { Range: `bytes=${ranges[0].range[0]}-${aggregateRangeEnd}` }
     try {
       const res = await fetch(url, { headers })
       if (!res.ok) {
         return { error: new NetworkError(url, { cause: new Error(`unexpected HTTP status: ${res.status}`) }) }
       }
-      return await consumeMultipartResponse(url, locations, res)
+      return await consumeMultipartResponse(url, ranges, res)
     } catch (err) {
       return { error: new NetworkError(url, { cause: err }) }
     }
@@ -199,34 +208,44 @@ export const fetchBlobs = withResultSpan('fetchBlobs',
 const consumeMultipartResponse = withResultSpan('consumeMultipartResponse',
 /**
  * @param {URL} url
- * @param {Array<{ location: API.Location, range?: API.Range }>} locations
+ * @param {ResolvedRange[]} sortedRanges
  * @param {Response} res
  * @returns {Promise<API.Result<API.Blob[], API.NotFound|API.Aborted|API.NetworkError>>}
  */
-  async (url, locations, res) => {
+  async (url, sortedRanges, res) => {
     if (!res.body) {
       return { error: new NetworkError(url, { cause: new Error('missing repsonse body') }) }
     }
-
-    const boundary = getBoundary(res.headers)
-    if (!boundary) {
-      return { error: new NetworkError(url, { cause: new Error('missing multipart boundary') }) }
-    }
-
-    /** @type {API.Blob[]} */
     const blobs = []
-    let i = 0
+    const parts = new Uint8ArrayList()
+    let farthestRead = sortedRanges[0].range[0]
+    let farthestConsumed = sortedRanges[0].range[0]
+    let currentRange = 0
     try {
-      await res.body
-        .pipeThrough(new MultipartByteRangeDecoder(boundary))
-        .pipeTo(new WritableStream({
-          write (part) {
-            blobs.push(new Blob(locations[i].location.digest, part.content))
-            i++
+      for await (const chunk of res.body) {
+        // append the chunk to our buffer
+        parts.append(chunk)
+        // update the absolute range of what we've read
+        farthestRead += chunk.byteLength
+        // read and push any blobs in the current buffer
+        // note that as long as ranges are sorted ascending by start
+        // this should be resilient to overlapping ranges
+        while (farthestRead >= sortedRanges[currentRange].range[1] + 1) {
+          blobs.push(new Blob(sortedRanges[currentRange].digest,
+            parts.subarray(sortedRanges[currentRange].range[0] - farthestConsumed, sortedRanges[currentRange].range[1] + 1 - farthestConsumed)))
+          currentRange++
+          if (currentRange >= sortedRanges.length) {
+            return { ok: blobs }
           }
-        }))
+          let toConsume = sortedRanges[currentRange].range[0] - farthestConsumed
+          if (toConsume > parts.byteLength) { toConsume = parts.byteLength }
+          parts.consume(toConsume)
+          farthestConsumed += toConsume
+        }
+      }
       return { ok: blobs }
     } catch (err) {
+      console.log(err)
       return { error: new NetworkError(url, { cause: err }) }
     }
   })

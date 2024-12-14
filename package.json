@@ -64,6 +64,7 @@
     "multipart-byte-range": "^3.0.1",
     "p-defer": "^4.0.1",
     "p-queue": "^8.0.1",
+    "uint8arraylist": "^2.4.8",
     "zod": "^3.23.8"
   },
   "devDependencies": {
