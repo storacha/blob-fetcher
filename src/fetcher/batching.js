@@ -87,24 +87,10 @@ class BatchingFetcher {
         if (locs.length >= MAX_BATCH_SIZE) break
       }
 
-      responses.push({
-        promise: fetchBlobs(siteURL, locs),
-        locs
-      })
+      responses.push(fetchBlobs(siteURL, locs, pendingReqs))
     }
 
-    for (const response of responses) {
-      const res = await response.promise
-      if (res.error) break
-      for (const [i, blob] of res.ok.entries()) {
-        const rangeReqs = pendingReqs.get(blob.digest)
-        const key = rangeKey(response.locs[i].range)
-        const reqs = rangeReqs?.get(key)
-        reqs?.[0].resolve({ ok: blob })
-        reqs?.slice(1).forEach(r => r.resolve({ ok: blob.clone() }))
-        rangeReqs?.delete(key)
-      }
-    }
+    await Promise.all(responses)
 
     // resolve `undefined` for any remaining requests
     for (const [digest, rangeReqs] of pendingReqs) {
@@ -149,7 +135,7 @@ class BatchingFetcher {
  */
 export const create = (locator) => new BatchingFetcher(locator)
 
-/** @typedef {{range: import('multipart-byte-range').AbsoluteRange, digest: API.MultihashDigest}} ResolvedRange */
+/** @typedef {{range: import('multipart-byte-range').AbsoluteRange, digest: API.MultihashDigest, orig: API.Range | undefined}} ResolvedRange */
 
 /**
  * Fetch blobs from the passed locations. The locations MUST share a common
@@ -159,13 +145,15 @@ export const fetchBlobs = withResultSpan('fetchBlobs',
 /**
  * @param {URL} url Desired URL to fetch blobs from.
  * @param {Array<{ location: API.Location, range?: API.Range }>} locations
- * @returns {Promise<API.Result<API.Blob[], API.NotFound|API.Aborted|API.NetworkError>>}
+ * @param {DigestMap<API.MultihashDigest, RangedRequests>} pendingReqs
+ * @returns {Promise<API.Result<true, API.NotFound|API.Aborted|API.NetworkError>>}
  */
-  async (url, locations) => {
+  async (url, locations, pendingReqs) => {
     if (locations.length === 1) {
       const res = await fetchBlob(locations[0].location, locations[0].range)
       if (res.error) return res
-      return { ok: [res.ok] }
+      resolveBlob(res.ok, locations[0].range, pendingReqs)
+      return { ok: true }
     }
 
     /** @type {ResolvedRange[]>} */
@@ -183,7 +171,8 @@ export const fetchBlobs = withResultSpan('fetchBlobs',
             }
             ranges.push({
               digest: location.digest,
-              range: resolvedRange
+              range: resolvedRange,
+              orig: range
             })
             found = true
             break
@@ -204,7 +193,7 @@ export const fetchBlobs = withResultSpan('fetchBlobs',
       if (!res.ok) {
         return { error: new NetworkError(url, { cause: new Error(`unexpected HTTP status: ${res.status}`) }) }
       }
-      return await consumeMultipartResponse(url, ranges, res)
+      return await consumeMultipartResponse(url, ranges, res, pendingReqs)
     } catch (err) {
       return { error: new NetworkError(url, { cause: err }) }
     }
@@ -218,13 +207,13 @@ const consumeMultipartResponse = withResultSpan('consumeMultipartResponse',
  * @param {URL} url
  * @param {ResolvedRange[]} sortedRanges
  * @param {Response} res
- * @returns {Promise<API.Result<API.Blob[], API.NotFound|API.Aborted|API.NetworkError>>}
+ * @param {DigestMap<API.MultihashDigest, RangedRequests>} pendingReqs
+ * @returns {Promise<API.Result<true, API.NotFound|API.Aborted|API.NetworkError>>}
  */
-  async (url, sortedRanges, res) => {
+  async (url, sortedRanges, res, pendingReqs) => {
     if (!res.body) {
       return { error: new NetworkError(url, { cause: new Error('missing repsonse body') }) }
     }
-    const blobs = []
     const parts = new Uint8ArrayList()
     let farthestRead = sortedRanges[0].range[0]
     let farthestConsumed = sortedRanges[0].range[0]
@@ -239,11 +228,12 @@ const consumeMultipartResponse = withResultSpan('consumeMultipartResponse',
         // note that as long as ranges are sorted ascending by start
         // this should be resilient to overlapping ranges
         while (farthestRead >= sortedRanges[currentRange].range[1] + 1) {
-          blobs.push(new Blob(sortedRanges[currentRange].digest,
-            parts.subarray(sortedRanges[currentRange].range[0] - farthestConsumed, sortedRanges[currentRange].range[1] + 1 - farthestConsumed)))
+          const blob = new Blob(sortedRanges[currentRange].digest,
+            parts.subarray(sortedRanges[currentRange].range[0] - farthestConsumed, sortedRanges[currentRange].range[1] + 1 - farthestConsumed))
+          resolveBlob(blob, sortedRanges[currentRange].orig, pendingReqs)
           currentRange++
           if (currentRange >= sortedRanges.length) {
-            return { ok: blobs }
+            return { ok: true }
           }
           let toConsume = sortedRanges[currentRange].range[0] - farthestConsumed
           if (toConsume > parts.byteLength) { toConsume = parts.byteLength }
@@ -251,12 +241,27 @@ const consumeMultipartResponse = withResultSpan('consumeMultipartResponse',
           farthestConsumed += toConsume
         }
       }
-      return { ok: blobs }
+      return { error: new NetworkError(url, { cause: new Error('did not resolve all chunks') }) }
     } catch (err) {
       console.log(err)
       return { error: new NetworkError(url, { cause: err }) }
     }
   })
+
+/**
+ *
+ * @param {API.Blob} blob
+ * @param {API.Range | undefined} range
+ * @param {DigestMap<API.MultihashDigest, RangedRequests>} pendingReqs
+ */
+const resolveBlob = (blob, range, pendingReqs) => {
+  const rangeReqs = pendingReqs.get(blob.digest)
+  const key = rangeKey(range)
+  const reqs = rangeReqs?.get(key)
+  reqs?.[0].resolve({ ok: blob })
+  reqs?.slice(1).forEach(r => r.resolve({ ok: blob.clone() }))
+  rangeReqs?.delete(key)
+}
 
 /** @implements {API.Blob} */
 class Blob {
