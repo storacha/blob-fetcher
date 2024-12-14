@@ -6,6 +6,7 @@ import { MultipartByteRangeDecoder, getBoundary } from 'multipart-byte-range/dec
 import { NetworkError, NotFoundError } from '../lib.js'
 import { fetchBlob } from './simple.js'
 import { resolveRange } from './lib.js'
+import { withResultSpan } from '../tracing/tracing.js'
 
 /**
  * @typedef {'*'|`${number},${number}`|`${number}`} RangeKey
@@ -142,49 +143,67 @@ export const create = (locator) => new BatchingFetcher(locator)
 /**
  * Fetch blobs from the passed locations. The locations MUST share a common
  * site to fetch from.
- *
+ */
+export const fetchBlobs = withResultSpan('fetchBlobs',
+/**
  * @param {URL} url Desired URL to fetch blobs from.
  * @param {Array<{ location: API.Location, range?: API.Range }>} locations
  * @returns {Promise<API.Result<API.Blob[], API.NotFound|API.Aborted|API.NetworkError>>}
  */
-export const fetchBlobs = async (url, locations) => {
-  if (locations.length === 1) {
-    const res = await fetchBlob(locations[0].location, locations[0].range)
-    if (res.error) return res
-    return { ok: [res.ok] }
-  }
+  async (url, locations) => {
+    if (locations.length === 1) {
+      const res = await fetchBlob(locations[0].location, locations[0].range)
+      if (res.error) return res
+      return { ok: [res.ok] }
+    }
 
-  const ranges = []
-  for (const { location, range } of locations) {
-    for (const s of location.site) {
-      let found = false
-      for (const l of s.location) {
-        if (l.toString() === url.toString()) {
+    const ranges = []
+    for (const { location, range } of locations) {
+      for (const s of location.site) {
+        let found = false
+        for (const l of s.location) {
+          if (l.toString() === url.toString()) {
           /** @type {import('multipart-byte-range').AbsoluteRange} */
-          let resolvedRange = [s.range.offset, s.range.offset + s.range.length - 1]
-          if (range) {
-            const relRange = resolveRange(range, s.range.length)
-            resolvedRange = [s.range.offset + relRange[0], s.range.offset + relRange[1]]
+            let resolvedRange = [s.range.offset, s.range.offset + s.range.length - 1]
+            if (range) {
+              const relRange = resolveRange(range, s.range.length)
+              resolvedRange = [s.range.offset + relRange[0], s.range.offset + relRange[1]]
+            }
+            ranges.push(resolvedRange)
+            found = true
+            break
           }
-          ranges.push(resolvedRange)
-          found = true
-          break
         }
+        if (found) break
       }
-      if (found) break
     }
-  }
-  if (ranges.length !== locations.length) {
-    throw new Error('no common site')
-  }
-
-  const headers = { Range: `bytes=${ranges.map(r => `${r[0]}-${r[1]}`).join(',')}` }
-  try {
-    const res = await fetch(url, { headers })
-    if (!res.ok) {
-      return { error: new NetworkError(url, { cause: new Error(`unexpected HTTP status: ${res.status}`) }) }
+    if (ranges.length !== locations.length) {
+      throw new Error('no common site')
     }
 
+    const headers = { Range: `bytes=${ranges.map(r => `${r[0]}-${r[1]}`).join(',')}` }
+    try {
+      const res = await fetch(url, { headers })
+      if (!res.ok) {
+        return { error: new NetworkError(url, { cause: new Error(`unexpected HTTP status: ${res.status}`) }) }
+      }
+      return await consumeMultipartResponse(url, locations, res)
+    } catch (err) {
+      return { error: new NetworkError(url, { cause: err }) }
+    }
+  })
+
+/**
+ * Consumes a multipart range request to create multiple blobs
+ */
+const consumeMultipartResponse = withResultSpan('consumeMultipartResponse',
+/**
+ * @param {URL} url
+ * @param {Array<{ location: API.Location, range?: API.Range }>} locations
+ * @param {Response} res
+ * @returns {Promise<API.Result<API.Blob[], API.NotFound|API.Aborted|API.NetworkError>>}
+ */
+  async (url, locations, res) => {
     if (!res.body) {
       return { error: new NetworkError(url, { cause: new Error('missing repsonse body') }) }
     }
@@ -197,20 +216,20 @@ export const fetchBlobs = async (url, locations) => {
     /** @type {API.Blob[]} */
     const blobs = []
     let i = 0
-    await res.body
-      .pipeThrough(new MultipartByteRangeDecoder(boundary))
-      .pipeTo(new WritableStream({
-        write (part) {
-          blobs.push(new Blob(locations[i].location.digest, part.content))
-          i++
-        }
-      }))
-
-    return { ok: blobs }
-  } catch (err) {
-    return { error: new NetworkError(url, { cause: err }) }
-  }
-}
+    try {
+      await res.body
+        .pipeThrough(new MultipartByteRangeDecoder(boundary))
+        .pipeTo(new WritableStream({
+          write (part) {
+            blobs.push(new Blob(locations[i].location.digest, part.content))
+            i++
+          }
+        }))
+      return { ok: blobs }
+    } catch (err) {
+      return { error: new NetworkError(url, { cause: err }) }
+    }
+  })
 
 /** @implements {API.Blob} */
 class Blob {
