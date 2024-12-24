@@ -5,7 +5,7 @@ import { DigestMap, ShardedDAGIndex } from '@web3-storage/blob-index'
 import { fetchBlob } from '../fetcher/simple.js'
 import { NotFoundError } from '../lib.js'
 import { base58btc } from 'multiformats/bases/base58'
-import { withSimpleSpan } from 'src/tracing/tracing.js'
+import { withSimpleSpan } from '../tracing/tracing.js'
 
 /**
  * @import { DID } from '@ucanto/interface'
