@@ -1,7 +1,7 @@
 /**
- * @param {import('multipart-byte-range').Range} range
+ * @param {import('../api.js').Range} range
  * @param {number} totalSize
- * @returns {import('multipart-byte-range').AbsoluteRange}
+ * @returns {import('../api.js').AbsoluteRange}
  */
 export const resolveRange = (range, totalSize) => {
   let last = range[1]

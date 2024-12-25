@@ -157,7 +157,7 @@ class BatchingFetcher {
  */
 export const create = (locator) => new BatchingFetcher(locator)
 
-/** @typedef {{range: import('multipart-byte-range').AbsoluteRange, digest: API.MultihashDigest, orig: API.Range | undefined}} ResolvedRange */
+/** @typedef {{range: API.AbsoluteRange, digest: API.MultihashDigest, orig: API.Range | undefined}} ResolvedRange */
 
 /**
  * Fetch blobs from the passed locations. The locations MUST share a common
@@ -188,7 +188,7 @@ export const fetchBlobs = withResultSpan('fetchBlobs',
         let found = false
         for (const l of s.location) {
           if (l.toString() === url.toString()) {
-          /** @type {import('multipart-byte-range').AbsoluteRange} */
+          /** @type {API.AbsoluteRange} */
             let resolvedRange = [s.range.offset, s.range.offset + s.range.length - 1]
             if (range) {
               const relRange = resolveRange(range, s.range.length)

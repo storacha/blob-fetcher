@@ -61,7 +61,6 @@
     "@web3-storage/blob-index": "^1.0.2",
     "@web3-storage/content-claims": "^5.1.0",
     "multiformats": "^13.1.0",
-    "multipart-byte-range": "^3.0.1",
     "p-defer": "^4.0.1",
     "p-queue": "^8.0.1",
     "uint8arraylist": "^2.4.8",
