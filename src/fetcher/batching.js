@@ -19,6 +19,7 @@ const MAX_BATCH_SIZE = 16
 /** @implements {API.Fetcher} */
 class BatchingFetcher {
   #locator
+  #fetch
 
   /** @type {DigestMap<API.MultihashDigest, RangedRequests>} */
   #pendingReqs = new DigestMap()
@@ -31,9 +32,13 @@ class BatchingFetcher {
   /** @type {Promise<void>|null} */
   #processing = null
 
-  /** @param {API.Locator} locator */
-  constructor (locator) {
+  /**
+   * @param {API.Locator} locator
+   * @param {typeof globalThis.fetch} [fetch]
+   */
+  constructor (locator, fetch = globalThis.fetch.bind(globalThis)) {
     this.#locator = locator
+    this.#fetch = fetch
   }
 
   #scheduleBatchProcessing () {
@@ -93,7 +98,7 @@ class BatchingFetcher {
         if (locs.length >= MAX_BATCH_SIZE) break
       }
 
-      const fetchRes = await fetchBlobs(siteURL, locs)
+      const fetchRes = await fetchBlobs(siteURL, locs, this.#fetch)
       // if we have an error, stop
       if (fetchRes.error) {
         break
@@ -153,9 +158,10 @@ class BatchingFetcher {
 /**
  * Create a new batching blob fetcher.
  * @param {API.Locator} locator
+ * @param {typeof globalThis.fetch} [fetch]
  * @returns {API.Fetcher}
  */
-export const create = (locator) => new BatchingFetcher(locator)
+export const create = (locator, fetch = globalThis.fetch.bind(globalThis)) => new BatchingFetcher(locator, fetch)
 
 /** @typedef {{range: API.AbsoluteRange, digest: API.MultihashDigest, orig: API.Range | undefined}} ResolvedBlobs */
 
@@ -168,11 +174,12 @@ export const fetchBlobs = withResultSpan('fetchBlobs', _fetchBlobs)
 /**
  * @param {URL} url Desired URL to fetch blobs from.
  * @param {Array<{ location: API.Location, range?: API.Range }>} locations
+ * @param {typeof globalThis.fetch} [fetch]
  * @returns {Promise<API.Result<AsyncGenerator<BlobResult, API.Result<true, API.NotFound|API.Aborted|API.NetworkError>>, API.NotFound|API.Aborted|API.NetworkError>>}
  */
-async function _fetchBlobs (url, locations) {
+async function _fetchBlobs (url, locations, fetch = globalThis.fetch.bind(globalThis)) {
   if (locations.length === 1) {
-    const res = await fetchBlob(locations[0].location, locations[0].range)
+    const res = await fetchBlob(locations[0].location, locations[0].range, fetch)
     if (res.error) return res
     return {
       ok: (async function * () {

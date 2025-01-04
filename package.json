@@ -50,6 +50,10 @@
     "./locator/indexing-service": {
       "import": "./src/locator/indexing-service/index.js",
       "types": "./dist/src/locator/indexing-service/index.d.ts"
+    },
+    "./tracing/tracing": {
+      "import": "./src/tracing/tracing.js",
+      "types": "./dist/src/tracing/tracing.d.ts"
     }
   },
   "dependencies": {

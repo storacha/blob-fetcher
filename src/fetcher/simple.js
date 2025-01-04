@@ -7,10 +7,15 @@ import { withResultSpan } from '../tracing/tracing.js'
 /** @implements {API.Fetcher} */
 class SimpleFetcher {
   #locator
+  #fetch
 
-  /** @param {API.Locator} locator */
-  constructor (locator) {
+  /**
+   * @param {API.Locator} locator
+   * @param {typeof globalThis.fetch} [fetch]
+   */
+  constructor (locator, fetch = globalThis.fetch.bind(globalThis)) {
     this.#locator = locator
+    this.#fetch = fetch
   }
 
   /**
@@ -20,24 +25,26 @@ class SimpleFetcher {
   async fetch (digest, options) {
     const locResult = await this.#locator.locate(digest, options)
     if (locResult.error) return locResult
-    return fetchBlob(locResult.ok, options?.range)
+    return fetchBlob(locResult.ok, options?.range, this.#fetch)
   }
 }
 
 /**
  * Create a new blob fetcher.
  * @param {API.Locator} locator
+ * @param {typeof globalThis.fetch} [fetch]
  * @returns {API.Fetcher}
  */
-export const create = (locator) => new SimpleFetcher(locator)
+export const create = (locator, fetch = globalThis.fetch.bind(globalThis)) => new SimpleFetcher(locator, fetch)
 
 export const fetchBlob = withResultSpan('fetchBlob',
   /**
  * Fetch a blob from the passed location.
  * @param {API.Location} location
  * @param {API.Range} [range]
+ * @param {typeof globalThis.fetch} [fetch]
  */
-  async (location, range) => {
+  async (location, range, fetch = globalThis.fetch.bind(globalThis)) => {
     let networkError
 
     for (const site of location.site) {
