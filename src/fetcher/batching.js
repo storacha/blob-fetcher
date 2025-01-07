@@ -6,7 +6,7 @@ import { NetworkError, NotFoundError } from '../lib.js'
 import { fetchBlob } from './simple.js'
 import { resolveRange } from './lib.js'
 import { withAsyncGeneratorSpan, withResultSpan } from '../tracing/tracing.js'
-import { Uint8ArrayList } from 'uint8arraylist'
+import { MultipartByteRangeDecoder, getBoundary } from 'multipart-byte-range'
 
 /**
  * @typedef {'*'|`${number},${number}`|`${number}`} RangeKey
@@ -220,12 +220,7 @@ async function _fetchBlobs (url, locations, fetch = globalThis.fetch.bind(global
     throw new Error('no common site')
   }
 
-  // sort blobs by starting byte
-  resolvedBlobs.sort((a, b) => a.range[0] - b.range[0])
-  // get last byte to fetch
-  const aggregateRangeEnd = resolvedBlobs.reduce((aggregateEnd, r) => r.range[1] > aggregateEnd ? r.range[1] : aggregateEnd, 0)
-  // fetch bytes from the first starting byte to the last byte to fetch
-  const headers = { Range: `bytes=${resolvedBlobs[0].range[0]}-${aggregateRangeEnd}` }
+  const headers = { Range: `bytes=${resolvedBlobs.map(r => `${r.range[0]}-${r.range[1]}`).join(',')}` }
   try {
     const res = await fetch(url, { headers })
     if (!res.ok) {
@@ -248,46 +243,30 @@ const consumeBatchResponse = withAsyncGeneratorSpan('consumeBatchResponse', _con
 
 /**
  * @param {URL} url
- * @param {ResolvedBlobs[]} sortedBlobs
+ * @param {ResolvedBlobs[]} resolvedBlobs
  * @param {Response} res
  * @returns {AsyncGenerator<BlobResult, API.Result<true, API.NotFound|API.Aborted|API.NetworkError>>}
  */
-async function * _consumeBatchResponse (url, sortedBlobs, res) {
+async function * _consumeBatchResponse (url, resolvedBlobs, res) {
   if (!res.body) {
     return { error: new NetworkError(url, { cause: new Error('missing repsonse body') }) }
   }
-  const parts = new Uint8ArrayList()
-  // start at first byte of first blob
-  let farthestRead = sortedBlobs[0].range[0]
-  let farthestConsumed = sortedBlobs[0].range[0]
-  let currentBlob = 0
+
+  const boundary = getBoundary(res.headers)
+  if (!boundary) {
+    return { error: new NetworkError(url, { cause: new Error('missing multipart boundary') }) }
+  }
+
+  let i = 0
+
   try {
-    for await (const chunk of res.body) {
-      // append the chunk to our buffer
-      parts.append(chunk)
-      // update the absolute position of how far we've read
-      farthestRead += chunk.byteLength
-      // resolve any blobs in the current buffer
-      // note that as long as blobs are sorted ascending by start
-      // this should be resilient to overlapping ranges
-      while (farthestRead >= sortedBlobs[currentBlob].range[1] + 1) {
-        // generate blob out of the current buffer
-        const blob = new Blob(sortedBlobs[currentBlob].digest,
-          parts.subarray(sortedBlobs[currentBlob].range[0] - farthestConsumed, sortedBlobs[currentBlob].range[1] + 1 - farthestConsumed))
-        yield ({ blob, range: sortedBlobs[currentBlob].orig })
-        currentBlob++
-        if (currentBlob >= sortedBlobs.length) {
-          return { ok: true }
-        }
-        // consume any bytes we no longer need
-        // (they are before the beginning of the current range)
-        let toConsume = sortedBlobs[currentBlob].range[0] - farthestConsumed
-        if (toConsume > parts.byteLength) { toConsume = parts.byteLength }
-        parts.consume(toConsume)
-        farthestConsumed += toConsume
-      }
+    for await (const chunk of res.body.pipeThrough(new MultipartByteRangeDecoder(boundary))) {
+      // generate blob out of the current buffer
+      const blob = new Blob(resolvedBlobs[i].digest, chunk.content)
+      yield ({ blob, range: resolvedBlobs[i].orig })
+      i++
     }
-    return { error: new NetworkError(url, { cause: new Error('did not resolve all chunks') }) }
+    return { ok: true }
   } catch (err) {
     return { error: new NetworkError(url, { cause: err }) }
   }
