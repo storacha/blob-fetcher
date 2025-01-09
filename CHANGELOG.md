@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.5.0](https://github.com/storacha/blob-fetcher/compare/v2.4.3...v2.5.0) (2025-01-09)
+
+
+### Features
+
+* **batching:** fetch from single range ([24ff66c](https://github.com/storacha/blob-fetcher/commit/24ff66ce27e7868ffe032f07098230083ec33425))
+* **batching:** kick off fetchblobs in parallel ([33afdb1](https://github.com/storacha/blob-fetcher/commit/33afdb1ec4f8ee15db8f7e1d27ca5e6ac27943d5))
+* **batching:** resolve blocks as soon as we have them ([34c5a81](https://github.com/storacha/blob-fetcher/commit/34c5a810d6d69f3ab3a80ddb5cc2cbc2ce3da5cd))
+* **blob-fetcher:** revert no multipart-byte-range ([46fa971](https://github.com/storacha/blob-fetcher/commit/46fa9711ea516f622db1d35ec33c721176304b72))
+* **fetcher:** allow passing a custom fetch implementation ([c828a19](https://github.com/storacha/blob-fetcher/commit/c828a191667e5c1cffa7f1c49a348e7c583a5006))
+* **tracing:** add tracing ([b24812e](https://github.com/storacha/blob-fetcher/commit/b24812eb554f243a4424fc07e966ed774ed64b7f))
+
+
+### Bug Fixes
+
+* **blob-fetcher:** remove unused package ([46fa971](https://github.com/storacha/blob-fetcher/commit/46fa9711ea516f622db1d35ec33c721176304b72))
+
 ## [2.4.3](https://github.com/storacha/blob-fetcher/compare/v2.4.2...v2.4.3) (2024-12-03)
 
 
