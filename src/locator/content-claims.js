@@ -5,6 +5,7 @@ import { DigestMap, ShardedDAGIndex } from '@web3-storage/blob-index'
 import { fetchBlob } from '../fetcher/simple.js'
 import { NotFoundError } from '../lib.js'
 import { base58btc } from 'multiformats/bases/base58'
+import { withSimpleSpan } from '../tracing/tracing.js'
 
 /**
  * @import { DID } from '@ucanto/interface'
@@ -78,7 +79,7 @@ export class ContentClaimsLocator {
    * Read claims for the passed CID and populate the cache.
    * @param {API.MultihashDigest} digest
    */
-  async #readClaims (digest) {
+  async #internalReadClaims (digest) {
     if (this.#claimFetched.has(digest)) return
 
     const claims = await Claims.read(digest, { serviceURL: this.#serviceURL })
@@ -110,7 +111,7 @@ export class ContentClaimsLocator {
           if (this.#carpark === undefined) {
             continue
           }
-          const obj = await this.#carpark.get(toBlobKey(claim.index.multihash))
+          const obj = await withSimpleSpan('carPark.get', this.#carpark.get, this.#carpark)(toBlobKey(claim.index.multihash))
           if (!obj) {
             continue
           }
@@ -169,6 +170,12 @@ export class ContentClaimsLocator {
     }
     this.#claimFetched.set(digest, true)
   }
+
+  /**
+   * Read claims for the passed CID and populate the cache.
+   * @param {API.MultihashDigest} digest
+   */
+  #readClaims = withSimpleSpan('readClaims', this.#internalReadClaims, this)
 
   /** @type {API.Locator['scopeToSpaces']} */
   scopeToSpaces (spaces) {

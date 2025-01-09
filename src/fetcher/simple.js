@@ -2,14 +2,20 @@
 import * as API from '../api.js'
 import { resolveRange } from './lib.js'
 import { NetworkError, NotFoundError } from '../lib.js'
+import { withResultSpan } from '../tracing/tracing.js'
 
 /** @implements {API.Fetcher} */
 class SimpleFetcher {
   #locator
+  #fetch
 
-  /** @param {API.Locator} locator */
-  constructor (locator) {
+  /**
+   * @param {API.Locator} locator
+   * @param {typeof globalThis.fetch} [fetch]
+   */
+  constructor (locator, fetch = globalThis.fetch.bind(globalThis)) {
     this.#locator = locator
+    this.#fetch = fetch
   }
 
   /**
@@ -19,47 +25,52 @@ class SimpleFetcher {
   async fetch (digest, options) {
     const locResult = await this.#locator.locate(digest, options)
     if (locResult.error) return locResult
-    return fetchBlob(locResult.ok, options?.range)
+    return fetchBlob(locResult.ok, options?.range, this.#fetch)
   }
 }
 
 /**
  * Create a new blob fetcher.
  * @param {API.Locator} locator
+ * @param {typeof globalThis.fetch} [fetch]
  * @returns {API.Fetcher}
  */
-export const create = (locator) => new SimpleFetcher(locator)
+export const create = (locator, fetch = globalThis.fetch.bind(globalThis)) => new SimpleFetcher(locator, fetch)
 
-/**
+export const fetchBlob = withResultSpan('fetchBlob',
+  /**
  * Fetch a blob from the passed location.
  * @param {API.Location} location
  * @param {API.Range} [range]
+ * @param {typeof globalThis.fetch} [fetch]
  */
-export const fetchBlob = async (location, range) => {
-  let networkError
-  for (const site of location.site) {
-    for (const url of site.location) {
-      let resolvedRange = [site.range.offset, site.range.offset + site.range.length - 1]
-      if (range) {
-        const relRange = resolveRange(range, site.range.length)
-        resolvedRange = [site.range.offset + relRange[0], site.range.offset + relRange[1]]
-      }
-      const headers = { Range: `bytes=${resolvedRange[0]}-${resolvedRange[1]}` }
-      try {
-        const res = await fetch(url, { headers })
-        if (!res.ok || !res.body) {
-          console.warn(`failed to fetch ${url}: ${res.status} ${await res.text()}`)
-          continue
+  async (location, range, fetch = globalThis.fetch.bind(globalThis)) => {
+    let networkError
+
+    for (const site of location.site) {
+      for (const url of site.location) {
+        let resolvedRange = [site.range.offset, site.range.offset + site.range.length - 1]
+        if (range) {
+          const relRange = resolveRange(range, site.range.length)
+          resolvedRange = [site.range.offset + relRange[0], site.range.offset + relRange[1]]
         }
-        return { ok: new Blob(location.digest, res) }
-      } catch (err) {
-        networkError = new NetworkError(url, { cause: err })
+        const headers = { Range: `bytes=${resolvedRange[0]}-${resolvedRange[1]}` }
+        try {
+          const res = await fetch(url, { headers })
+          if (!res.ok || !res.body) {
+            console.warn(`failed to fetch ${url}: ${res.status} ${await res.text()}`)
+            continue
+          }
+          return { ok: new Blob(location.digest, res) }
+        } catch (err) {
+          networkError = new NetworkError(url, { cause: err })
+        }
       }
     }
-  }
 
-  return { error: networkError || new NotFoundError(location.digest) }
-}
+    return { error: networkError || new NotFoundError(location.digest) }
+  }
+)
 
 /** @implements {API.Blob} */
 class Blob {

@@ -1,6 +1,6 @@
 {
   "name": "@web3-storage/blob-fetcher",
-  "version": "2.4.3",
+  "version": "2.4.4-rc.0",
   "description": "A blob fetcher that batches requests and reads multipart byterange responses.",
   "main": "src/index.js",
   "type": "module",
@@ -50,11 +50,16 @@
     "./locator/indexing-service": {
       "import": "./src/locator/indexing-service/index.js",
       "types": "./dist/src/locator/indexing-service/index.d.ts"
+    },
+    "./tracing/tracing": {
+      "import": "./src/tracing/tracing.js",
+      "types": "./dist/src/tracing/tracing.d.ts"
     }
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20241022.0",
     "@ipld/dag-ucan": "^3.4.0",
+    "@opentelemetry/api": "^1.9.0",
     "@storacha/indexing-service-client": "^2.0.0",
     "@ucanto/interface": "^10.0.1",
     "@web3-storage/blob-index": "^1.0.2",

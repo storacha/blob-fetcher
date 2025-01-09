@@ -1,7 +1,7 @@
 import { ByteView, MultihashDigest } from 'multiformats'
 import { Failure, Result, URI, DID } from '@ucanto/interface'
-import { Range } from 'multipart-byte-range'
 import { QueryError } from '@storacha/indexing-service-client/api'
+import { Range } from 'multipart-byte-range'
 
 export { ByteView, MultihashDigest } from 'multiformats'
 export { Failure, Result, URI, DID, Principal } from '@ucanto/interface'
