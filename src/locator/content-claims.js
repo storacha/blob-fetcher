@@ -6,10 +6,12 @@ import { fetchBlob } from '../fetcher/simple.js'
 import { NotFoundError } from '../lib.js'
 import { base58btc } from 'multiformats/bases/base58'
 import { withSimpleSpan } from '../tracing/tracing.js'
-
+import { digest as digestMod } from 'multiformats'
 /**
  * @import { DID } from '@ucanto/interface'
  * @import { UnknownLink } from 'multiformats'
+ * @import { MultihashDigest } from 'multiformats'
+ * @import { ShardDigest, Position } from '@web3-storage/blob-index/types'
  */
 
 /**
@@ -22,6 +24,10 @@ export class ContentClaimsLocator {
    * @type {DigestMap<API.MultihashDigest, API.Location>}
    */
   #cache
+
+  /** @type {DigestMap<MultihashDigest, { shardDigest: ShardDigest; position: Position; }>} */
+  #knownSlices
+
   /**
    * Multihash digests for which we have already fetched claims.
    *
@@ -33,7 +39,7 @@ export class ContentClaimsLocator {
    * Note: implemented as a Map not a Set so that we take advantage of the
    * key cache that `DigestMap` provides, so we don't duplicate base58 encoded
    * multihash keys.
-   * @type {DigestMap<API.MultihashDigest, true>}
+   * @type {DigestMap<API.MultihashDigest, Promise<void>>}
    */
   #claimFetched
   /**
@@ -57,6 +63,7 @@ export class ContentClaimsLocator {
     this.#serviceURL = options?.serviceURL
     this.#carpark = options?.carpark
     this.#carparkPublicBucketURL = options?.carparkPublicBucketURL
+    this.#knownSlices = new DigestMap()
   }
 
   /** @param {API.MultihashDigest} digest */
@@ -76,12 +83,54 @@ export class ContentClaimsLocator {
   }
 
   /**
-   * Read claims for the passed CID and populate the cache.
+   *
+   * @param {API.MultihashDigest} digest
+   * @param {ShardDigest} shard
+   * @param {Position} pos
+   * @returns
+   */
+  async #readShard (digest, shard, pos) {
+    await this.#readClaims(shard)
+    let location = this.#cache.get(shard)
+    if (!location) {
+      if (this.#carpark === undefined || this.#carparkPublicBucketURL === undefined) {
+        return
+      }
+      const obj = await this.#carpark.head(toBlobKey(shard))
+      if (!obj) {
+        return
+      }
+      location = {
+        digest: shard,
+        site: [{
+          location: [new URL(toBlobKey(shard), this.#carparkPublicBucketURL)],
+          range: { offset: 0, length: obj.size }
+        }]
+      }
+      this.#cache.set(shard, location)
+    }
+    this.#cache.set(digest, {
+      digest,
+      site: location.site.map(s => ({
+        location: s.location,
+        range: {
+          offset: s.range.offset + pos[0],
+          length: pos[1]
+        }
+      }))
+    })
+  }
+
+  /**
+   *
    * @param {API.MultihashDigest} digest
    */
-  async #internalReadClaims (digest) {
-    if (this.#claimFetched.has(digest)) return
-
+  async #executeReadClaims (digest) {
+    const knownSlice = this.#knownSlices.get(digest)
+    if (knownSlice && !digestMod.equals(knownSlice.shardDigest, digest)) {
+      await this.#readShard(digest, knownSlice.shardDigest, knownSlice.position)
+      return
+    }
     const claims = await Claims.read(digest, { serviceURL: this.#serviceURL })
     for (const claim of claims) {
       if (claim.type === 'assert/location' && claim.range?.length != null) {
@@ -132,43 +181,30 @@ export class ContentClaimsLocator {
         }
 
         const index = decodeRes.ok
-        await Promise.all([...index.shards].map(async ([shard, slices]) => {
-          await this.#readClaims(shard)
-          let location = this.#cache.get(shard)
-          if (!location) {
-            if (this.#carpark === undefined || this.#carparkPublicBucketURL === undefined) {
-              return
-            }
-            const obj = await this.#carpark.head(toBlobKey(shard))
-            if (!obj) {
-              return
-            }
-            location = {
-              digest: shard,
-              site: [{
-                location: [new URL(toBlobKey(shard), this.#carparkPublicBucketURL)],
-                range: { offset: 0, length: obj.size }
-              }]
-            }
-            this.#cache.set(shard, location)
+        for (const [shardDigest, slices] of index.shards) {
+          for (const [sliceDigest, position] of slices) {
+            this.#knownSlices.set(sliceDigest, { shardDigest, position })
           }
-
-          for (const [slice, pos] of slices) {
-            this.#cache.set(slice, {
-              digest: slice,
-              site: location.site.map(s => ({
-                location: s.location,
-                range: {
-                  offset: s.range.offset + pos[0],
-                  length: pos[1]
-                }
-              }))
-            })
-          }
-        }))
+        }
+        const knownSlice = this.#knownSlices.get(digest)
+        if (knownSlice) {
+          await this.#readShard(digest, knownSlice.shardDigest, knownSlice.position)
+        }
       }
     }
-    this.#claimFetched.set(digest, true)
+  }
+
+  /**
+   * Read claims for the passed CID and populate the cache.
+   * @param {API.MultihashDigest} digest
+   */
+  async #internalReadClaims (digest) {
+    if (this.#claimFetched.has(digest)) {
+      return this.#claimFetched.get(digest)
+    }
+    const promise = this.#executeReadClaims(digest)
+    this.#claimFetched.set(digest, promise)
+    return promise
   }
 
   /**

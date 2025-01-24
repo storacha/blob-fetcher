@@ -47,6 +47,10 @@ export interface ByteRange {
   length: number
 }
 
+type OptionalLengthByteRange = Partial<Pick<ByteRange, 'length'>> & Omit<ByteRange, 'length'>
+export type OptionalSite = { range?: OptionalLengthByteRange } & Omit<Site, 'range'>
+export type NoLengthLocation = { digest: MultihashDigest, site: OptionalSite[] }
+
 type FetchError = NotFound | Aborted | NetworkError | QueryError
 
 export interface Locator {

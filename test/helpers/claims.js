@@ -10,10 +10,18 @@ import { CARWriterStream, code as carCode } from 'carstream'
 import { sha256 } from 'multiformats/hashes/sha2'
 import * as Link from 'multiformats/link'
 import { Assert } from '@web3-storage/content-claims/capability'
+import { decode } from '@web3-storage/content-claims/client'
+import { extract } from '@web3-storage/blob-index/sharded-dag-index'
+import { from } from '@storacha/indexing-service-client/query-result'
 
+/**
+ * @import {Claim, Kind, ShardedDAGIndexView} from "@storacha/indexing-service-client/api"
+ * @import {KnownClaimTypes} from "@web3-storage/content-claims/client/api"
+ */
 /**
  * @typedef {import('@web3-storage/content-claims/server/api').ClaimFetcher} ClaimFetcher
  * @typedef {{ claimsStore: ClaimStorage, claimsURL: URL }} ClaimsServerContext
+ * @typedef {{ indexerURL: URL }} IndexingServerContext
  */
 
 /**
@@ -38,6 +46,111 @@ export const withClaimsServer = testfn =>
     const claimsURL = new URL(`http://127.0.0.1:${port}`)
     try {
       await testfn(assert, { ...ctx, claimsStore, claimsURL })
+    } finally {
+      server.close()
+    }
+  })
+
+/**
+ * @template {ClaimsServerContext} T
+ * @param {(assert: import('entail').Assert, ctx: T & IndexingServerContext) => unknown} testfn
+ */
+export const withTestIndexer = testfn =>
+/** @type {(assert: import('entail').Assert, ctx: T) => unknown} */
+// eslint-disable-next-line no-extra-parens
+  (async (assert, ctx) => {
+    const server = http.createServer(async (req, res) => {
+      const url = new URL(req.url ?? '', indexerURL)
+      const hashes = url.searchParams.getAll('multihash').map((hash) =>
+        Digest.decode(base58btc.decode(hash))
+      )
+      /**
+       *
+       * @param {string} kindString
+       * @returns {kindString is Kind}
+       */
+      const isKind = (kindString) => ['index_or_location', 'location', 'standard'].includes(kindString)
+      const kind = url.searchParams.get('kind') || 'standard'
+      if (!isKind(kind)) {
+        res.writeHead(400, { 'Content-Type': 'text/plain' })
+        res.end('kind must be a string')
+        return
+      }
+      /** @type {{ hash: API.MultihashDigest, kind: Kind, indexForMh?: API.MultihashDigest }[]} */
+      const jobs = hashes.map((hash) => ({
+        hash,
+        kind
+      }))
+      /** @type {Record<Kind, KnownClaimTypes[]>} */
+      const claimMatches = {
+        index_or_location: ['assert/location', 'assert/index'],
+        location: ['assert/location'],
+        standard: ['assert/index', 'assert/location', 'assert/equals']
+      }
+      /** @type {Claim[]} */
+      let claims = []
+      /** @type {Map<string, ShardedDAGIndexView>} */
+      const indexes = new Map()
+      for (;;) {
+        const job = jobs.shift()
+        if (!job) break
+        const rawClaims = (await ctx.claimsStore.get(job.hash))
+        const parsedClaims = []
+        for (const rawClaim of rawClaims) {
+          const claim = await decode(rawClaim.bytes)
+          if (claim.type !== 'unknown' && claimMatches[job.kind].includes(claim.type)) {
+            parsedClaims.push(claim)
+          }
+        }
+        claims = claims.concat(parsedClaims)
+        for (const claim of parsedClaims) {
+          switch (claim.type) {
+            case 'assert/index':
+              jobs.push({ hash: claim.index.multihash, kind: 'index_or_location', indexForMh: job.hash })
+              break
+            case 'assert/location':
+              if (job.indexForMh !== undefined) {
+                /** @type {HeadersInit} */
+                const headers = {}
+                if (claim.range) {
+                  headers.Range = `bytes=${claim.range.offset}-${claim.range.length ? claim.range.offset + claim.range.length - 1 : ''}`
+                }
+                const indexRes = await fetch(claim.location[0], { headers })
+                if (indexRes.status >= 200 && indexRes.status < 300) {
+                  const result = extract(await indexRes.bytes())
+                  if (result.ok) {
+                    indexes.set(base58btc.encode(job.hash.bytes), result.ok)
+                    result.ok.shards.forEach((shardIndex, hash) => {
+                      if (job.indexForMh && shardIndex.has(job.indexForMh)) {
+                        jobs.push({ hash, kind: 'index_or_location' })
+                      }
+                    })
+                  }
+                }
+              }
+          }
+        }
+      }
+      const qr = await from({ claims, indexes })
+      if (qr.ok) {
+        /** @type {ReadableStream<import('carstream/api').Block>} */
+        const readable = new ReadableStream({
+          async pull (controller) {
+            for (const block of qr.ok.iterateIPLDBlocks()) {
+              controller.enqueue(block)
+            }
+            controller.close()
+          }
+        })
+        readable.pipeThrough(new CARWriterStream([qr.ok.root.cid])).pipeTo(Writable.toWeb(res))
+      }
+    })
+    await new Promise(resolve => server.listen(resolve))
+    // @ts-expect-error
+    const { port } = server.address()
+    const indexerURL = new URL(`http://127.0.0.1:${port}`)
+    try {
+      await testfn(assert, { ...ctx, indexerURL })
     } finally {
       server.close()
     }
