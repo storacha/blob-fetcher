@@ -43,13 +43,13 @@
       "import": "./src/fetcher/batching.js",
       "types": "./dist/src/fetcher/batching.d.ts"
     },
-    "./locator/content-claims": {
-      "import": "./src/locator/content-claims.js",
-      "types": "./dist/src/locator/content-claims.d.ts"
+    "./locator/content-claims-client": {
+      "import": "./src/locator/content-claims-client.js",
+      "types": "./dist/src/locator/content-claims-client.d.ts"
     },
-    "./locator/indexing-service": {
-      "import": "./src/locator/indexing-service/index.js",
-      "types": "./dist/src/locator/indexing-service/index.d.ts"
+    "./locator": {
+      "import": "./src/locator/index.js",
+      "types": "./dist/src/locator/index.d.ts"
     },
     "./tracing/tracing": {
       "import": "./src/tracing/tracing.js",
@@ -60,9 +60,9 @@
     "@cloudflare/workers-types": "^4.20241022.0",
     "@ipld/dag-ucan": "^3.4.0",
     "@opentelemetry/api": "^1.9.0",
-    "@storacha/indexing-service-client": "2.0.1-rc.5",
+    "@storacha/indexing-service-client": "2.0.1-rc.6",
     "@web3-storage/blob-index": "^1.0.2",
-    "@web3-storage/content-claims": "5.1.4-rc.5",
+    "@web3-storage/content-claims": "5.2.0",
     "multiformats": "^13.1.0",
     "multipart-byte-range": "^3.0.1",
     "p-defer": "^4.0.1",
@@ -72,6 +72,7 @@
   "devDependencies": {
     "@ipld/unixfs": "^3.0.0",
     "@types/node": "^22.9.1",
+    "@ucanto/interface": "10.1.1",
     "@ucanto/principal": "^9.0.2",
     "@web3-storage/public-bucket": "^1.1.0",
     "c8": "^9.1.0",

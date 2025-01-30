@@ -12,7 +12,6 @@ import { exporter } from 'ipfs-unixfs-exporter'
 import * as ed25519 from '@ucanto/principal/ed25519'
 import * as SimpleFetcher from '../src/fetcher/simple.js'
 import * as BatchingFetcher from '../src/fetcher/batching.js'
-import * as ContentClaimsLocator from '../src/locator/content-claims.js'
 import { randomBytes, randomInt } from './helpers/random.js'
 import { concat } from './helpers/stream.js'
 import { settings } from './helpers/unixfs.js'
@@ -21,8 +20,9 @@ import { generateIndexClaim, generateLocationClaim, generateLocationClaims, with
 import { asBlockstore } from './helpers/unixfs-exporter.js'
 import * as Fetch from './helpers/fetch.js'
 import * as Result from './helpers/result.js'
-import * as IndexingServiceLocator from '../src/locator/indexing-service/index.js'
+import * as IndexingServiceLocator from '../src/locator/index.js'
 import { Client } from '@storacha/indexing-service-client'
+import { ContentClaimsClient } from '../src/locator/content-claims-client.js'
 
 // simulates cloudflare worker environment with max 6 concurrent reqs
 Fetch.patch({ concurrency: 6, lag: 50 })
@@ -38,7 +38,7 @@ const withContext = testfn => withBucketServer(withClaimsServer(withTestIndexer(
 
 ;[
   { locatorName: 'indexer', LocatorFactory: (/** @type {Context} */ctx) => IndexingServiceLocator.create({ client: new Client({ serviceURL: ctx.indexerURL }) }) },
-  { locatorName: 'content claims', LocatorFactory: (/** @type {Context} */ctx) => ContentClaimsLocator.create({ serviceURL: ctx.claimsURL }) }
+  { locatorName: 'content claims', LocatorFactory: (/** @type {Context} */ctx) => IndexingServiceLocator.create({ client: new ContentClaimsClient({ serviceURL: ctx.claimsURL }) }) }
 ].forEach(({ locatorName, LocatorFactory }) => {
   [
     { name: 'simple', FetcherFactory: SimpleFetcher },

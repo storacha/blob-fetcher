@@ -18,14 +18,14 @@ importers:
         specifier: ^1.9.0
         version: 1.9.0
       '@storacha/indexing-service-client':
-        specifier: 2.0.1-rc.5
-        version: 2.0.1-rc.5
+        specifier: 2.0.1-rc.6
+        version: 2.0.1-rc.6
       '@web3-storage/blob-index':
         specifier: ^1.0.2
         version: 1.0.4
       '@web3-storage/content-claims':
-        specifier: 5.1.4-rc.5
-        version: 5.1.4-rc.5
+        specifier: 5.2.0
+        version: 5.2.0
       multiformats:
         specifier: ^13.1.0
         version: 13.1.0
@@ -48,6 +48,9 @@ importers:
       '@types/node':
         specifier: ^22.9.1
         version: 22.9.1
+      '@ucanto/interface':
+        specifier: 10.1.1
+        version: 10.1.1
       '@ucanto/principal':
         specifier: ^9.0.2
         version: 9.0.2
@@ -232,8 +235,8 @@ packages:
   '@storacha/capabilities@0.0.0':
     resolution: {integrity: sha512-6PINXoAMrcDS0a76H+d/LM5QlrfrDSbdHOoB8YT1AwQipJfMKTDUVFhWgpIaUrNljoJ8JHh7Y0Z/xb/biKwtYg==}
 
-  '@storacha/indexing-service-client@2.0.1-rc.5':
-    resolution: {integrity: sha512-AOzP/PpDMkrvt89A88x5rgiAmFD0qWpMCgnQ3a3dbaWnzmmFFTfFtW3PzvoBG9edjUZwCjBLE+nVcOkrZG6JPg==}
+  '@storacha/indexing-service-client@2.0.1-rc.6':
+    resolution: {integrity: sha512-BYNde2AzjvXW/nLsy0NMTuBYa+Ar8nUDjLkZuxSw9geBP015sakiSnUvfCwqoTDMEytghVE2/4xYKmr2jJfU5Q==}
 
   '@storacha/one-webcrypto@1.0.1':
     resolution: {integrity: sha512-bD+vWmcgsEBqU0Dz04BR43SA03bBoLTAY29vaKasY9Oe8cb6XIP0/vkm0OS2UwKC13c8uRgFW4rjJUgDCNLejQ==}
@@ -278,8 +281,8 @@ packages:
   '@web3-storage/capabilities@17.4.1':
     resolution: {integrity: sha512-GogLfON8PZabi03CUyncBvMcCi36yQ/0iR5P8kr4pxdnZm7OuAn4sEwbEB8rTKbah5V10Vwgb3O5dh0FBgyjHg==}
 
-  '@web3-storage/content-claims@5.1.4-rc.5':
-    resolution: {integrity: sha512-gVY6WpUhDmoyCI9v8gFNl0ASuChBEfbjKdub5lNsMuyr5le6DQ8D95v3o2Aa042f2qFRFdRw79ryEWJfDa8Btw==}
+  '@web3-storage/content-claims@5.2.0':
+    resolution: {integrity: sha512-FV1WIfo+lL9igjkAtHU2dl2blJfoWCWnmCAO4bhFpZD2MwojUWlVHP1t6y6qL7QU1+o7Ax9tpiAWYsb1U7Pixg==}
 
   '@web3-storage/data-segment@5.3.0':
     resolution: {integrity: sha512-zFJ4m+pEKqtKatJNsFrk/2lHeFSbkXZ6KKXjBe7/2ayA9wAar7T/unewnOcZrrZTnCWmaxKsXWqdMFy9bXK9dw==}
@@ -1708,13 +1711,13 @@ snapshots:
       '@web3-storage/data-segment': 5.3.0
       uint8arrays: 5.1.0
 
-  '@storacha/indexing-service-client@2.0.1-rc.5':
+  '@storacha/indexing-service-client@2.0.1-rc.6':
     dependencies:
       '@ipld/dag-cbor': 9.2.2
       '@storacha/blob-index': 0.0.0
       '@ucanto/core': 10.2.1
       '@ucanto/interface': 10.1.1
-      '@web3-storage/content-claims': 5.1.4-rc.5
+      '@web3-storage/content-claims': 5.2.0
       multiformats: 13.3.1
 
   '@storacha/one-webcrypto@1.0.1': {}
@@ -1798,7 +1801,7 @@ snapshots:
       '@web3-storage/data-segment': 5.3.0
       uint8arrays: 5.1.0
 
-  '@web3-storage/content-claims@5.1.4-rc.5':
+  '@web3-storage/content-claims@5.2.0':
     dependencies:
       '@ucanto/client': 9.0.1
       '@ucanto/core': 10.2.1
