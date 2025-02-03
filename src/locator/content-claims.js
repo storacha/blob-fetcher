@@ -82,6 +82,9 @@ export class ContentClaimsLocator {
   async #internalReadClaims (digest) {
     if (this.#claimFetched.has(digest)) return
 
+    // Store before fetching to prevent re-entrant calls
+    this.#claimFetched.set(digest, true)
+
     const claims = await Claims.read(digest, { serviceURL: this.#serviceURL })
     for (const claim of claims) {
       if (claim.type === 'assert/location' && claim.range?.length != null) {
@@ -168,7 +171,6 @@ export class ContentClaimsLocator {
         }))
       }
     }
-    this.#claimFetched.set(digest, true)
   }
 
   /**
