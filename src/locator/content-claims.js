@@ -19,7 +19,7 @@ import { withSimpleSpan } from '../tracing/tracing.js'
 export class ContentClaimsLocator {
   /**
    * Cached location entries.
-   * @type {DigestMap<API.MultihashDigest, API.Location>}
+   * @type {DigestMap<API.MultihashDigest, API.Location & { indexBytes?: Uint8Array | undefined }>}
    */
   #cache
   /**
@@ -124,13 +124,20 @@ export class ContentClaimsLocator {
             continue
           }
           indexBytes = new Uint8Array(await obj.arrayBuffer())
+          this.#cache.set(claim.index.multihash, { digest: claim.index.multihash, indexBytes, site: [] })
         } else {
-          const fetchRes = await fetchBlob(location)
-          if (fetchRes.error) {
-            console.warn('failed to fetch index', fetchRes.error)
-            continue
+          if (location.indexBytes) {
+            indexBytes = location.indexBytes
+          } else {
+            const fetchRes = await fetchBlob(location)
+            if (fetchRes.error) {
+              console.warn('failed to fetch index', fetchRes.error)
+              continue
+            }
+            indexBytes = await fetchRes.ok.bytes()
+            // Store the fetched indexBytes in memory to avoid redundant network calls
+            location.indexBytes = indexBytes
           }
-          indexBytes = await fetchRes.ok.bytes()
         }
 
         const decodeRes = ShardedDAGIndex.extract(indexBytes)
