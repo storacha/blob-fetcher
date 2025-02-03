@@ -51,7 +51,7 @@ export class ContentClaimsLocator {
   /**
    * @param {LocatorOptions} [options]
    */
-  constructor (options) {
+  constructor(options) {
     this.#cache = new DigestMap()
     this.#claimFetched = new DigestMap()
     this.#serviceURL = options?.serviceURL
@@ -60,7 +60,7 @@ export class ContentClaimsLocator {
   }
 
   /** @param {API.MultihashDigest} digest */
-  async locate (digest) {
+  async locate(digest) {
     // get the index data for this CID (CAR CID & offset)
     let location = this.#cache.get(digest)
     if (!location) {
@@ -79,13 +79,18 @@ export class ContentClaimsLocator {
    * Read claims for the passed CID and populate the cache.
    * @param {API.MultihashDigest} digest
    */
-  async #internalReadClaims (digest) {
+  async #internalReadClaims(digest) {
     if (this.#claimFetched.has(digest)) return
 
     // Store before fetching to prevent re-entrant calls
     this.#claimFetched.set(digest, true)
 
-    const claims = await Claims.read(digest, { serviceURL: this.#serviceURL })
+    const claims = await retryPromise(() => Claims.read(digest, { serviceURL: this.#serviceURL }), 3, 1000)
+      .catch(err => {
+        console.error(`Failed to read claims for ${JSON.stringify(digest)}: ${err.message}`, err)
+        throw err
+      })
+
     for (const claim of claims) {
       if (claim.type === 'assert/location' && claim.range?.length != null) {
         const location = this.#cache.get(digest)
@@ -180,7 +185,7 @@ export class ContentClaimsLocator {
   #readClaims = withSimpleSpan('readClaims', this.#internalReadClaims, this)
 
   /** @type {API.Locator['scopeToSpaces']} */
-  scopeToSpaces (spaces) {
+  scopeToSpaces(spaces) {
     return spaceFilteredLocator(this, spaces)
   }
 }
@@ -206,7 +211,7 @@ const toBlobKey = digest => {
  * @returns {API.Locator}
  */
 const spaceFilteredLocator = (locator, spaces) => ({
-  async locate (digest) {
+  async locate(digest) {
     const locateResult = await locator.locate(digest)
     if (locateResult.error) {
       return locateResult
@@ -222,7 +227,35 @@ const spaceFilteredLocator = (locator, spaces) => ({
       }
     }
   },
-  scopeToSpaces (spaces) {
+  scopeToSpaces(spaces) {
     return spaceFilteredLocator(this, spaces)
   }
 })
+
+/**
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @param {number} maxRetries
+ * @param {number} delay
+ * @returns {Promise<T>}
+ */
+async function retryPromise(fn, maxRetries = 3, delay = 1000) {
+  let attempt = 0
+
+  while (attempt < maxRetries) {
+    try {
+      return await fn()
+    } catch (/** @type {any} */ err) {
+      attempt++
+      console.warn(`⚠️ Attempt ${attempt} failed: ${err.message}`)
+
+      if (attempt >= maxRetries) {
+        console.error(`Max retries reached. Giving up.`)
+        throw err
+      }
+
+      await new Promise(resolve => setTimeout(resolve, delay * attempt))
+    }
+  }
+  throw new Error('Retry failed')
+}
