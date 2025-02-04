@@ -65,7 +65,6 @@ export class ContentClaimsClient {
   }
 
   /**
-   *
    * @param {Query} q
    * @returns {Promise<Result<QueryOk, QueryError>>}
    */
