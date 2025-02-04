@@ -147,8 +147,17 @@ export class ContentClaimsLocator {
         }
 
         const index = decodeRes.ok
-        await Promise.all([...index.shards].map(async ([shard, slices]) => {
-          await this.#readClaims(shard)
+        const maxConcurrentRequests = 2 // Cloudflare Workers limit is 6 concurrent requests
+        const queue = []
+        for (const [shard, slices] of index.shards) {
+          
+          queue.push(this.#readClaims(shard))
+
+          if (queue.length >= maxConcurrentRequests) {
+            await Promise.all(queue)
+            queue.length = 0
+          }
+          
           let location = this.#cache.get(shard)
           if (!location) {
             if (this.#carpark === undefined || this.#carparkPublicBucketURL === undefined) {
@@ -180,7 +189,10 @@ export class ContentClaimsLocator {
               }))
             })
           }
-        }))
+        }
+        if (queue.length > 0) {
+          await Promise.all(queue)
+        }
       }
     }
   }
