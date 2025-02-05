@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/storacha/blob-fetcher/compare/v2.5.0...v3.0.0) (2025-02-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **locator:** content claims is now just a client, not a locator
+
+### Features
+
+* **locator:** unify locator with seperate clients ([29bf47f](https://github.com/storacha/blob-fetcher/commit/29bf47f28030208427b17c8be6ce781efda1a44b))
+
 ## [2.5.0](https://github.com/storacha/blob-fetcher/compare/v2.4.3...v2.5.0) (2025-01-09)
 
 
