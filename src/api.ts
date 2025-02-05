@@ -48,8 +48,8 @@ export interface ByteRange {
 }
 
 type OptionalLengthByteRange = Partial<Pick<ByteRange, 'length'>> & Omit<ByteRange, 'length'>
-export type OptionalSite = { range?: OptionalLengthByteRange } & Omit<Site, 'range'>
-export type NoLengthLocation = { digest: MultihashDigest, site: OptionalSite[] }
+export type OptionalRangeSite = { range?: OptionalLengthByteRange } & Omit<Site, 'range'>
+export type ShardLocation = { digest: MultihashDigest, site: OptionalRangeSite[] }
 
 type FetchError = NotFound | Aborted | NetworkError | QueryError
 

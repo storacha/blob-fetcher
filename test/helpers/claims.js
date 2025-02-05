@@ -17,6 +17,7 @@ import { from } from '@storacha/indexing-service-client/query-result'
 /**
  * @import {Claim, Kind, ShardedDAGIndexView} from "@storacha/indexing-service-client/api"
  * @import {KnownClaimTypes} from "@web3-storage/content-claims/client/api"
+ * @import {Assert as EntailAssert} from 'entail'
  */
 /**
  * @typedef {import('@web3-storage/content-claims/server/api').ClaimFetcher} ClaimFetcher
@@ -26,10 +27,10 @@ import { from } from '@storacha/indexing-service-client/query-result'
 
 /**
  * @template {{}} T
- * @param {(assert: import('entail').Assert, ctx: T & ClaimsServerContext) => unknown} testfn
+ * @param {(assert: EntailAssert, ctx: T & ClaimsServerContext) => unknown} testfn
  */
 export const withClaimsServer = testfn =>
-  /** @type {(assert: import('entail').Assert, ctx: T) => unknown} */
+  /** @type {(assert: EntailAssert, ctx: T) => unknown} */
   // eslint-disable-next-line no-extra-parens
   (async (assert, ctx) => {
     const claimsStore = new ClaimStorage()
@@ -53,10 +54,10 @@ export const withClaimsServer = testfn =>
 
 /**
  * @template {ClaimsServerContext} T
- * @param {(assert: import('entail').Assert, ctx: T & IndexingServerContext) => unknown} testfn
+ * @param {(assert: EntailAssert, ctx: T & IndexingServerContext) => unknown} testfn
  */
 export const withTestIndexer = testfn =>
-/** @type {(assert: import('entail').Assert, ctx: T) => unknown} */
+/** @type {(assert: EntailAssert, ctx: T) => unknown} */
 // eslint-disable-next-line no-extra-parens
   (async (assert, ctx) => {
     const server = http.createServer(async (req, res) => {
@@ -65,7 +66,6 @@ export const withTestIndexer = testfn =>
         Digest.decode(base58btc.decode(hash))
       )
       /**
-       *
        * @param {string} kindString
        * @returns {kindString is Kind}
        */

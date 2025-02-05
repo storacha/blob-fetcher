@@ -11,10 +11,11 @@ import { from } from '@storacha/indexing-service-client/query-result'
  * @import * as API from '../api.js'
  * @import {Claim, IndexingServiceClient, Query, QueryError, QueryOk, Result, Kind} from '@storacha/indexing-service-client/api'
  * @import {KnownClaimTypes, LocationClaim} from '@web3-storage/content-claims/client/api'
+ * @import { R2Bucket } from '@cloudflare/workers-types'
  */
 
 /**
- * @typedef {{ serviceURL?: URL, carpark?: import('@cloudflare/workers-types').R2Bucket, carparkPublicBucketURL?: URL}} LocatorOptions
+ * @typedef {{ serviceURL?: URL, carpark?: R2Bucket, carparkPublicBucketURL?: URL}} LocatorOptions
  */
 
 /**

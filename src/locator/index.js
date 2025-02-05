@@ -16,8 +16,6 @@ import { contentMultihash } from '@web3-storage/content-claims/client'
  * @property {DID[]} [spaces] The Spaces to search for the content. If
  * missing, the locator will search all Spaces.
  */
-
-/** @implements {IndexingServiceLocator} */
 export class IndexingServiceLocator {
   #client
   #spaces
@@ -34,7 +32,7 @@ export class IndexingServiceLocator {
   /**
    * Known Shards are locations claims we have a URL for but no length. They can be combined with known
    * slices to make a location entry, but can't be used for blob fetching on their own
-  * @type {DigestMap<API.MultihashDigest, API.NoLengthLocation>}
+  * @type {DigestMap<API.MultihashDigest, API.ShardLocation>}
    *
    */
   #knownShards
@@ -231,7 +229,7 @@ export class IndexingServiceLocator {
 export const create = (options) => new IndexingServiceLocator(options)
 
 /**
- * @template {API.OptionalSite} T
+ * @template {API.OptionalRangeSite} T
  * @param {DigestMap<API.MultihashDigest, { digest: API.MultihashDigest, site: T[] }>} cache
  * @param {API.MultihashDigest} digest
  * @param {T} site

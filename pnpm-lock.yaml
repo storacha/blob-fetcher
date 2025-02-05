@@ -18,8 +18,8 @@ importers:
         specifier: ^1.9.0
         version: 1.9.0
       '@storacha/indexing-service-client':
-        specifier: 2.0.1-rc.6
-        version: 2.0.1-rc.6
+        specifier: 2.1.0
+        version: 2.1.0
       '@web3-storage/blob-index':
         specifier: ^1.0.2
         version: 1.0.4
@@ -235,8 +235,8 @@ packages:
   '@storacha/capabilities@0.0.0':
     resolution: {integrity: sha512-6PINXoAMrcDS0a76H+d/LM5QlrfrDSbdHOoB8YT1AwQipJfMKTDUVFhWgpIaUrNljoJ8JHh7Y0Z/xb/biKwtYg==}
 
-  '@storacha/indexing-service-client@2.0.1-rc.6':
-    resolution: {integrity: sha512-BYNde2AzjvXW/nLsy0NMTuBYa+Ar8nUDjLkZuxSw9geBP015sakiSnUvfCwqoTDMEytghVE2/4xYKmr2jJfU5Q==}
+  '@storacha/indexing-service-client@2.1.0':
+    resolution: {integrity: sha512-cUwuB62CD0w124U8PBacJiiYf4jYSdI7N76516gFka9yyZ+gV49O4v25X4QgxpnXbC++8xv2Uk7CzH2XSN9PqA==}
 
   '@storacha/one-webcrypto@1.0.1':
     resolution: {integrity: sha512-bD+vWmcgsEBqU0Dz04BR43SA03bBoLTAY29vaKasY9Oe8cb6XIP0/vkm0OS2UwKC13c8uRgFW4rjJUgDCNLejQ==}
@@ -1711,7 +1711,7 @@ snapshots:
       '@web3-storage/data-segment': 5.3.0
       uint8arrays: 5.1.0
 
-  '@storacha/indexing-service-client@2.0.1-rc.6':
+  '@storacha/indexing-service-client@2.1.0':
     dependencies:
       '@ipld/dag-cbor': 9.2.2
       '@storacha/blob-index': 0.0.0
