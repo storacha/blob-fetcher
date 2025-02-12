@@ -2,12 +2,19 @@ import { DigestMap } from '@web3-storage/blob-index'
 import { NotFoundError } from '../lib.js'
 import { withSimpleSpan } from '../tracing/tracing.js'
 import { contentMultihash } from '@web3-storage/content-claims/client'
+import { Batcher } from '../batcher/batcher.js'
+import { base58btc } from 'multiformats/bases/base58'
+
+import defer from 'p-defer'
+
+const MAX_BATCH_SIZE = 16
 
 /**
  * @import * as API from '../api.js'
  * @import {Kind, IndexingServiceClient as ServiceClient} from '@storacha/indexing-service-client/api'
  * @import { DID } from '@ucanto/interface'
  * @import { ShardDigest, Position } from '@web3-storage/blob-index/types'
+ * @import { DeferredPromise} from 'p-defer'
  */
 
 /**
@@ -16,6 +23,18 @@ import { contentMultihash } from '@web3-storage/content-claims/client'
  * @property {DID[]} [spaces] The Spaces to search for the content. If
  * missing, the locator will search all Spaces.
  */
+
+/** @typedef { Record<Kind, DigestMap<API.MultihashDigest, DeferredPromise<void>>> } Work */
+
+/**
+ * @returns Work
+ */
+const newWork = () => ({
+  standard: new DigestMap(),
+  index_or_location: new DigestMap(),
+  location: new DigestMap()
+})
+
 export class IndexingServiceLocator {
   #client
   #spaces
@@ -38,6 +57,13 @@ export class IndexingServiceLocator {
   #knownShards
 
   /**
+   * Known indexes are indexes claims we are aware of
+   * @type {DigestMap<API.MultihashDigest, API.MultihashDigest>}
+   *
+   */
+  #knownIndexes
+
+  /**
    * Multihash digests for which we have already fetched claims.
    *
    * Note: _only_ the digests which have been explicitly queried, for which we
@@ -51,6 +77,9 @@ export class IndexingServiceLocator {
    * @type {Record<Kind, DigestMap<API.MultihashDigest, Promise<void>>>}
    */
   #claimFetched
+
+  /** @type {Batcher<Work>} */
+  #batcher
 
   /**
    *
@@ -67,6 +96,8 @@ export class IndexingServiceLocator {
     }
     this.#knownSlices = new DigestMap()
     this.#knownShards = new DigestMap()
+    this.#knownIndexes = new DigestMap()
+    this.#batcher = new Batcher(this.#processBatch.bind(this), newWork)
   }
 
   /** @param {API.MultihashDigest} digest */
@@ -75,19 +106,26 @@ export class IndexingServiceLocator {
     let location = this.#cache.get(digest)
     if (!location) {
       // no full cached data -- but perhaps we have the shard already?
-      const knownSlice = this.#knownSlices.get(digest)
+      let knownSlice = this.#knownSlices.get(digest)
+      if (!knownSlice) {
+        let knownIndex = this.#knownIndexes.get(digest)
+        if (!knownIndex) {
+          // nope we don't know anything really here, better read for the digest
+          await this.#readClaims(digest, 'standard')
+          knownIndex = this.#knownIndexes.get(digest)
+        }
+        if (knownIndex) {
+          const location = this.#getShard(knownIndex)
+          if (!location) {
+            await this.#readClaims(knownIndex, 'location')
+          }
+        }
+        // if we now have and index, read the shard
+        knownSlice = this.#knownSlices.get(digest)
+      }
       if (knownSlice) {
         // read the shard
         await this.#readShard(digest, knownSlice.shardDigest, knownSlice.position)
-      } else {
-        // nope we don't know anything really here, better read for the digest
-        await this.#readClaims(digest, 'standard')
-        // if we now have and index, read the shard
-        const knownSlice = this.#knownSlices.get(digest)
-        if (knownSlice) {
-          // read the shard
-          await this.#readShard(digest, knownSlice.shardDigest, knownSlice.position)
-        }
       }
       // seeing as we just read the index for this CID we _should_ have some
       // index information for it now.
@@ -141,16 +179,16 @@ export class IndexingServiceLocator {
 
   /**
    *
-   * @param {API.MultihashDigest} digest
+   * @param {API.MultihashDigest[]} digests
    * @param {Kind} kind
    */
-  async #executeReadClaims (digest, kind) {
+  async #executeReadClaims (digests, kind) {
     const result = await this.#client.queryClaims({
-      hashes: [digest],
+      hashes: digests,
       match: this.#spaces && { subject: this.#spaces },
       kind
     })
-
+    console.log(result)
     if (result.error) return
 
     // process any location claims
@@ -170,15 +208,8 @@ export class IndexingServiceLocator {
           })
         }
       }
-    }
-
-    // fetch location claims for any indexes we don't have a known shard for
-    for (const claim of result.ok.claims.values()) {
       if (claim.type === 'assert/index') {
-        const location = this.#getShard(claim.index.multihash)
-        if (!location) {
-          await this.#readClaims(claim.index.multihash, 'location')
-        }
+        this.#knownIndexes.set(contentMultihash(claim), claim.index.multihash)
       }
     }
 
@@ -201,9 +232,13 @@ export class IndexingServiceLocator {
     if (this.#claimFetched[kind].has(digest)) {
       return this.#claimFetched[kind].get(digest)
     }
-    const promise = this.#executeReadClaims(digest, kind)
-    this.#claimFetched[kind].set(digest, promise)
-    return promise
+    /** @type {DeferredPromise<void>} */
+    const deferred = defer()
+    this.#batcher.schedule((work) => {
+      work[kind].set(digest, deferred)
+    })
+    this.#claimFetched[kind].set(digest, deferred.promise)
+    return deferred.promise
   }
 
   /**
@@ -218,6 +253,35 @@ export class IndexingServiceLocator {
       client: this.#client,
       spaces: [...new Set([...this.#spaces, ...spaces]).values()]
     })
+  }
+
+  /**
+   * @param {Work} work
+   */
+  async #processBatch (work) {
+    console.log(Object.entries(work).map(([kind, requests]) => `${kind}, ${Array.from(requests.keys()).map((digest) => base58btc.encode(digest.bytes)).join(',')}`))
+    for (const [kind, requests] of Object.entries(work)) {
+      let nextBatch = []
+      const batches = []
+      for (const [digest, deferred] of requests.entries()) {
+        nextBatch.push({ digest, deferred })
+        if (nextBatch.length >= MAX_BATCH_SIZE) {
+          batches.push(nextBatch)
+          nextBatch = []
+        }
+      }
+      if (nextBatch.length > 0) {
+        batches.push(nextBatch)
+      }
+
+      for (const batch of batches) {
+        const digests = batch.map((next) => next.digest)
+        await this.#executeReadClaims(digests, /** @type {Kind} */(kind))
+        for (const next of batch) {
+          next.deferred.resolve()
+        }
+      }
+    }
   }
 }
 
