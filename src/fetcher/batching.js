@@ -7,30 +7,26 @@ import { fetchBlob } from './simple.js'
 import { resolveRange } from './lib.js'
 import { withAsyncGeneratorSpan, withResultSpan } from '../tracing/tracing.js'
 import { MultipartByteRangeDecoder, getBoundary } from 'multipart-byte-range'
-
+import { Batcher } from '../batcher/batcher.js'
 /**
  * @typedef {'*'|`${number},${number}`|`${number}`} RangeKey
  * @typedef {import('p-defer').DeferredPromise<API.Result<API.Blob, API.NotFound|API.Aborted|API.NetworkError>>} PendingBlobRequest
  * @typedef {Map<RangeKey, PendingBlobRequest[]>} RangedRequests
+ * @typedef {{pendingReqs: DigestMap<API.MultihashDigest, RangedRequests>, queue: Array<{ location: API.Location, range?: API.Range }>}} Work
  */
 
-const MAX_BATCH_SIZE = 16
+const MAX_BATCH_SIZE = 15
+
+/**
+ * @returns {Work}
+ */
+const newWork = () => ({ pendingReqs: new DigestMap(), queue: [] })
 
 /** @implements {API.Fetcher} */
 class BatchingFetcher {
   #locator
   #fetch
-
-  /** @type {DigestMap<API.MultihashDigest, RangedRequests>} */
-  #pendingReqs = new DigestMap()
-
-  /** @type {Array<{ location: API.Location, range?: API.Range }>} */
-  #queue = []
-
-  #scheduled = false
-
-  /** @type {Promise<void>|null} */
-  #processing = null
+  #batcher
 
   /**
    * @param {API.Locator} locator
@@ -39,39 +35,14 @@ class BatchingFetcher {
   constructor (locator, fetch = globalThis.fetch.bind(globalThis)) {
     this.#locator = locator
     this.#fetch = fetch
+    this.#batcher = new Batcher(this.#processBatch.bind(this), newWork)
   }
 
-  #scheduleBatchProcessing () {
-    if (this.#scheduled) return
-    this.#scheduled = true
-
-    const startProcessing = async () => {
-      this.#scheduled = false
-      const { promise, resolve } = defer()
-      this.#processing = promise
-      try {
-        await this.#processBatch()
-      } finally {
-        this.#processing = null
-        resolve()
-      }
-    }
-
-    // If already running, then start when finished
-    if (this.#processing) {
-      return this.#processing.then(startProcessing)
-    }
-
-    // If not running, then start on the next tick
-    setTimeout(startProcessing)
-  }
-
-  async #processBatch () {
-    const queue = this.#queue
-    this.#queue = []
-    const pendingReqs = this.#pendingReqs
-    this.#pendingReqs = new DigestMap()
-
+  /**
+   *
+   * @param {Work} work
+   */
+  async #processBatch (work) {
     // Basic algorithm
     // 1. assemble each http request
     // 2. fire off request
@@ -81,19 +52,19 @@ class BatchingFetcher {
     /** @type {Promise<API.Result<true, API.NotFound|API.Aborted|API.NetworkError>> | undefined } */
     let lastResolveBlobs
     while (true) {
-      const first = queue.shift()
+      const first = work.queue.shift()
       if (!first) break
 
       const siteURL = first.location.site[0].location[0]
       const locs = [first]
       while (true) {
-        const next = queue[0]
+        const next = work.queue[0]
         if (!next) break
 
         const site = next.location.site.find(s => s.location.some(l => l.toString() === siteURL.toString()))
         if (!site) break
 
-        queue.shift()
+        work.queue.shift()
         locs.push(next)
         if (locs.length >= MAX_BATCH_SIZE) break
       }
@@ -111,7 +82,7 @@ class BatchingFetcher {
           break
         }
       }
-      lastResolveBlobs = resolveRequests(fetchRes.ok, pendingReqs)
+      lastResolveBlobs = resolveRequests(fetchRes.ok, work.pendingReqs)
     }
 
     // await the last call to resolve blobs
@@ -120,7 +91,7 @@ class BatchingFetcher {
     }
 
     // resolve `undefined` for any remaining requests
-    for (const [digest, rangeReqs] of pendingReqs) {
+    for (const [digest, rangeReqs] of work.pendingReqs) {
       for (const [, reqs] of rangeReqs) {
         reqs.forEach(r => r.resolve({ error: new NotFoundError(digest) }))
       }
@@ -135,23 +106,24 @@ class BatchingFetcher {
     const locResult = await this.#locator.locate(digest, options)
     if (locResult.error) return locResult
 
-    let rangeReqs = this.#pendingReqs.get(locResult.ok.digest)
-    if (!rangeReqs) {
-      rangeReqs = new Map()
-      this.#pendingReqs.set(locResult.ok.digest, rangeReqs)
-    }
-    const key = rangeKey(options?.range)
-    let reqs = rangeReqs.get(key)
-    if (!reqs) {
-      reqs = []
-      rangeReqs.set(key, reqs)
-      this.#queue.push({ location: locResult.ok, range: options?.range })
-    }
-    /** @type {import('p-defer').DeferredPromise<API.Result<API.Blob, API.NotFound|API.Aborted|API.NetworkError>>} */
-    const deferred = defer()
-    reqs.push(deferred)
-    this.#scheduleBatchProcessing()
-    return deferred.promise
+    return this.#batcher.schedule((work) => {
+      let rangeReqs = work.pendingReqs.get(locResult.ok.digest)
+      if (!rangeReqs) {
+        rangeReqs = new Map()
+        work.pendingReqs.set(locResult.ok.digest, rangeReqs)
+      }
+      const key = rangeKey(options?.range)
+      let reqs = rangeReqs.get(key)
+      if (!reqs) {
+        reqs = []
+        rangeReqs.set(key, reqs)
+        work.queue.push({ location: locResult.ok, range: options?.range })
+      }
+      /** @type {import('p-defer').DeferredPromise<API.Result<API.Blob, API.NotFound|API.Aborted|API.NetworkError>>} */
+      const deferred = defer()
+      reqs.push(deferred)
+      return deferred.promise
+    })
   }
 }
 
