@@ -3,7 +3,6 @@ import { NotFoundError } from '../lib.js'
 import { withSimpleSpan } from '../tracing/tracing.js'
 import { contentMultihash } from '@web3-storage/content-claims/client'
 import { Batcher } from '../batcher/batcher.js'
-import { base58btc } from 'multiformats/bases/base58'
 
 import defer from 'p-defer'
 
@@ -57,13 +56,6 @@ export class IndexingServiceLocator {
   #knownShards
 
   /**
-   * Known indexes are indexes claims we are aware of
-   * @type {DigestMap<API.MultihashDigest, API.MultihashDigest>}
-   *
-   */
-  #knownIndexes
-
-  /**
    * Multihash digests for which we have already fetched claims.
    *
    * Note: _only_ the digests which have been explicitly queried, for which we
@@ -96,7 +88,6 @@ export class IndexingServiceLocator {
     }
     this.#knownSlices = new DigestMap()
     this.#knownShards = new DigestMap()
-    this.#knownIndexes = new DigestMap()
     this.#batcher = new Batcher(this.#processBatch.bind(this), newWork)
   }
 
@@ -108,18 +99,7 @@ export class IndexingServiceLocator {
       // no full cached data -- but perhaps we have the shard already?
       let knownSlice = this.#knownSlices.get(digest)
       if (!knownSlice) {
-        let knownIndex = this.#knownIndexes.get(digest)
-        if (!knownIndex) {
-          // nope we don't know anything really here, better read for the digest
-          await this.#readClaims(digest, 'standard')
-          knownIndex = this.#knownIndexes.get(digest)
-        }
-        if (knownIndex) {
-          const location = this.#getShard(knownIndex)
-          if (!location) {
-            await this.#readClaims(knownIndex, 'location')
-          }
-        }
+        await this.#readClaims(digest, 'standard', false)
         // if we now have and index, read the shard
         knownSlice = this.#knownSlices.get(digest)
       }
@@ -146,7 +126,7 @@ export class IndexingServiceLocator {
   async #readShard (digest, shard, pos) {
     let location = this.#getShard(shard)
     if (!location) {
-      await this.#readClaims(shard, 'location')
+      await this.#readClaims(shard, 'location', false)
       location = this.#getShard(shard)
       // if not then, well, it's not found!
       if (!location) return
@@ -188,7 +168,6 @@ export class IndexingServiceLocator {
       match: this.#spaces && { subject: this.#spaces },
       kind
     })
-    console.log(result)
     if (result.error) return
 
     // process any location claims
@@ -208,8 +187,15 @@ export class IndexingServiceLocator {
           })
         }
       }
+    }
+
+    // fetch location claims for any indexes we don't have a known shard for
+    for (const claim of result.ok.claims.values()) {
       if (claim.type === 'assert/index') {
-        this.#knownIndexes.set(contentMultihash(claim), claim.index.multihash)
+        const location = this.#getShard(claim.index.multihash)
+        if (!location) {
+          await this.#readClaims(claim.index.multihash, 'location', true)
+        }
       }
     }
 
@@ -227,12 +213,18 @@ export class IndexingServiceLocator {
    * Read claims for the passed CID and populate the cache.
    * @param {API.MultihashDigest} digest
    * @param {Kind} kind
+   * @param {boolean} synchronous
    */
-  async #internalReadClaims (digest, kind) {
+  async #internalReadClaims (digest, kind, synchronous) {
     if (this.#claimFetched[kind].has(digest)) {
       return this.#claimFetched[kind].get(digest)
     }
     /** @type {DeferredPromise<void>} */
+    if (synchronous) {
+      const res = this.#executeReadClaims([digest], kind)
+      this.#claimFetched[kind].set(digest, res)
+      return res
+    }
     const deferred = defer()
     this.#batcher.schedule((work) => {
       work[kind].set(digest, deferred)
@@ -259,7 +251,6 @@ export class IndexingServiceLocator {
    * @param {Work} work
    */
   async #processBatch (work) {
-    console.log(Object.entries(work).map(([kind, requests]) => `${kind}, ${Array.from(requests.keys()).map((digest) => base58btc.encode(digest.bytes)).join(',')}`))
     for (const [kind, requests] of Object.entries(work)) {
       let nextBatch = []
       const batches = []

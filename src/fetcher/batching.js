@@ -61,7 +61,6 @@ class BatchingFetcher {
         const next = work.queue[0]
         if (!next) break
 
-        console.log(next.location.site.flatMap(s => s.location.map(l => l.toString())).join(', '))
         const site = next.location.site.find(s => s.location.some(l => l.toString() === siteURL.toString()))
         if (!site) break
 
