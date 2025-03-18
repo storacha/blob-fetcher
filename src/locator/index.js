@@ -15,25 +15,26 @@ import { contentMultihash } from '@web3-storage/content-claims/client'
  * @property {ServiceClient} client An Indexing Service client instance.
  * @property {DID[]} [spaces] The Spaces to search for the content. If
  * missing, the locator will search all Spaces.
- * @property {API.DigestMap<API.MultihashDigest, API.Location>} [cache]
+ * @property {API.AsyncDigestMap<API.MultihashDigest, API.Location>} [cache]
  */
+
 export class IndexingServiceLocator {
   #client
   #spaces
 
   /**
    * Cached location entries.
-   * @type {API.DigestMap<API.MultihashDigest, API.Location>}
+   * @type {API.AsyncDigestMap<API.MultihashDigest, API.Location>}
    */
   #cache
 
-  /** @type {API.DigestMap<API.MultihashDigest, { shardDigest: ShardDigest; position: Position; }>} */
+  /** @type {DigestMap<API.MultihashDigest, { shardDigest: ShardDigest; position: Position; }>} */
   #knownSlices
 
   /**
    * Known Shards are locations claims we have a URL for but no length. They can be combined with known
    * slices to make a location entry, but can't be used for blob fetching on their own
-  * @type {API.DigestMap<API.MultihashDigest, API.ShardLocation>}
+  * @type {API.AsyncDigestMap<API.MultihashDigest, API.ShardLocation>}
    *
    */
   #knownShards
@@ -49,7 +50,7 @@ export class IndexingServiceLocator {
    * Note: implemented as a Map not a Set so that we take advantage of the
    * key cache that `DigestMap` provides, so we don't duplicate base58 encoded
    * multihash keys.
-   * @type {Record<Kind, API.DigestMap<API.MultihashDigest, Promise<void>>>}
+   * @type {Record<Kind, DigestMap<API.MultihashDigest, Promise<void>>>}
    */
   #claimFetched
 
@@ -57,7 +58,7 @@ export class IndexingServiceLocator {
    *
    * @param {LocatorOptions} options
    */
-  constructor ({ client, spaces, cache = new DigestMap() }) {
+  constructor ({ client, spaces, cache = new SimpleAsyncDigestMap() }) {
     this.#client = client
     this.#spaces = spaces ?? []
     this.#cache = cache
@@ -67,13 +68,13 @@ export class IndexingServiceLocator {
       standard: new DigestMap()
     }
     this.#knownSlices = new DigestMap()
-    this.#knownShards = new DigestMap()
+    this.#knownShards = new SimpleAsyncDigestMap()
   }
 
   /** @param {API.MultihashDigest} digest */
   async locate (digest) {
     // get the cached data for this CID (CAR CID & offset)
-    let location = this.#cache.get(digest)
+    let location = await this.#cache.get(digest)
     if (!location) {
       // no full cached data -- but perhaps we have the shard already?
       const knownSlice = this.#knownSlices.get(digest)
@@ -92,7 +93,7 @@ export class IndexingServiceLocator {
       }
       // seeing as we just read the index for this CID we _should_ have some
       // index information for it now.
-      location = this.#cache.get(digest)
+      location = await this.#cache.get(digest)
       // if not then, well, it's not found!
       if (!location) return { error: new NotFoundError(digest) }
     }
@@ -107,14 +108,14 @@ export class IndexingServiceLocator {
    * @returns
    */
   async #readShard (digest, shard, pos) {
-    let location = this.#getShard(shard)
+    let location = await this.#getShard(shard)
     if (!location) {
       await this.#readClaims(shard, 'location')
-      location = this.#getShard(shard)
+      location = await this.#getShard(shard)
       // if not then, well, it's not found!
       if (!location) return
     }
-    this.#cache.set(digest, {
+    await this.#cache.set(digest, {
       digest,
       site: location.site.map(s => ({
         location: s.location,
@@ -132,12 +133,12 @@ export class IndexingServiceLocator {
    * @param {API.MultihashDigest} shardKey
    * @returns
    */
-  #getShard (shardKey) {
-    const knownShard = this.#knownShards.get(shardKey)
+  async #getShard (shardKey) {
+    const knownShard = await this.#knownShards.get(shardKey)
     if (knownShard) {
       return knownShard
     }
-    return this.#cache.get(shardKey)
+    return await this.#cache.get(shardKey)
   }
 
   /**
@@ -158,13 +159,13 @@ export class IndexingServiceLocator {
     for (const claim of result.ok.claims.values()) {
       if (claim.type === 'assert/location') {
         if (claim.range?.length != null) {
-          addOrSetLocation(this.#cache, contentMultihash(claim), {
+          await addOrSetLocation(this.#cache, contentMultihash(claim), {
             location: claim.location.map(l => new URL(l)),
             range: { offset: claim.range.offset, length: claim.range.length },
             space: claim.space
           })
         } else {
-          addOrSetLocation(this.#knownShards, contentMultihash(claim), {
+          await addOrSetLocation(this.#knownShards, contentMultihash(claim), {
             location: claim.location.map(l => new URL(l)),
             range: claim.range ? { offset: claim.range.offset } : undefined,
             space: claim.space
@@ -176,7 +177,7 @@ export class IndexingServiceLocator {
     // fetch location claims for any indexes we don't have a known shard for
     for (const claim of result.ok.claims.values()) {
       if (claim.type === 'assert/index') {
-        const location = this.#getShard(claim.index.multihash)
+        const location = await this.#getShard(claim.index.multihash)
         if (!location) {
           await this.#readClaims(claim.index.multihash, 'location')
         }
@@ -217,7 +218,8 @@ export class IndexingServiceLocator {
   scopeToSpaces (spaces) {
     return new IndexingServiceLocator({
       client: this.#client,
-      spaces: [...new Set([...this.#spaces, ...spaces]).values()]
+      spaces: [...new Set([...this.#spaces, ...spaces]).values()],
+      cache: this.#cache
     })
   }
 }
@@ -231,18 +233,48 @@ export const create = (options) => new IndexingServiceLocator(options)
 
 /**
  * @template {API.OptionalRangeSite} T
- * @param {API.DigestMap<API.MultihashDigest, { digest: API.MultihashDigest, site: T[] }>} cache
+ * @param {API.AsyncDigestMap<API.MultihashDigest, { digest: API.MultihashDigest, site: T[] }>} cache
  * @param {API.MultihashDigest} digest
  * @param {T} site
  */
-const addOrSetLocation = (cache, digest, site) => {
-  const location = cache.get(digest)
+const addOrSetLocation = async (cache, digest, site) => {
+  const location = await cache.get(digest)
   if (location) {
     location.site.push(site)
   } else {
-    cache.set(digest, {
+    await cache.set(digest, {
       digest,
       site: [site]
     })
+  }
+}
+
+/**
+ * @template {API.MultihashDigest<number>} Key
+ * @template {any} Value
+ */
+export class SimpleAsyncDigestMap {
+  /** @type {DigestMap<Key, Value>} */
+  #digestMap
+
+  constructor () {
+    this.#digestMap = new DigestMap()
+  }
+
+  /**
+   *
+   * @param {Key} key
+   */
+  async get (key) {
+    return this.#digestMap.get(key)
+  }
+
+  /**
+   *
+   * @param {Key} key
+   * @param {Value} value
+   */
+  async set (key, value) {
+    this.#digestMap.set(key, value)
   }
 }

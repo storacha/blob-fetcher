@@ -83,8 +83,7 @@ export interface NetworkError extends Failure {
   url: URI
 }
 
-export interface DigestMap<Key extends MultihashDigest<number>, Value> {
-  has(key: Key) : boolean
-  get(key: Key) : Value|undefined
-  set(key: Key, value: Value) : ThisType<this>
+export interface AsyncDigestMap<Key extends MultihashDigest<number>, Value> {
+  get(key: Key) : Promise<Value|undefined>
+  set(key: Key, value: Value) : Promise<void>
 }
