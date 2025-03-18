@@ -74,7 +74,7 @@ export class IndexingServiceLocator {
   /** @param {API.MultihashDigest} digest */
   async locate (digest) {
     // get the cached data for this CID (CAR CID & offset)
-    let location = await this.#cache.get(digest)
+    let location = await this.getCache(digest)
     if (!location) {
       // no full cached data -- but perhaps we have the shard already?
       const knownSlice = this.#knownSlices.get(digest)
@@ -93,7 +93,7 @@ export class IndexingServiceLocator {
       }
       // seeing as we just read the index for this CID we _should_ have some
       // index information for it now.
-      location = await this.#cache.get(digest)
+      location = await this.getCache(digest)
       // if not then, well, it's not found!
       if (!location) return { error: new NotFoundError(digest) }
     }
@@ -138,7 +138,23 @@ export class IndexingServiceLocator {
     if (knownShard) {
       return knownShard
     }
-    return await this.#cache.get(shardKey)
+    return await this.getCache(shardKey)
+  }
+
+  /**
+   *
+   * @param {API.MultihashDigest} cacheKey
+   * @returns
+   */
+  async getCache (cacheKey) {
+    let location = await this.#cache.get(cacheKey)
+    if (location && this.#spaces.length > 0) {
+      const site = location.site.filter((site) =>
+        site.space && this.#spaces.includes(site.space)
+      )
+      location = site.length > 0 ? { digest: location.digest, site } : undefined
+    }
+    return location
   }
 
   /**
