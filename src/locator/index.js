@@ -15,6 +15,7 @@ import { contentMultihash } from '@web3-storage/content-claims/client'
  * @property {ServiceClient} client An Indexing Service client instance.
  * @property {DID[]} [spaces] The Spaces to search for the content. If
  * missing, the locator will search all Spaces.
+ * @property {API.DigestMap<API.MultihashDigest, API.Location>} [cache]
  */
 export class IndexingServiceLocator {
   #client
@@ -22,17 +23,17 @@ export class IndexingServiceLocator {
 
   /**
    * Cached location entries.
-   * @type {DigestMap<API.MultihashDigest, API.Location>}
+   * @type {API.DigestMap<API.MultihashDigest, API.Location>}
    */
   #cache
 
-  /** @type {DigestMap<API.MultihashDigest, { shardDigest: ShardDigest; position: Position; }>} */
+  /** @type {API.DigestMap<API.MultihashDigest, { shardDigest: ShardDigest; position: Position; }>} */
   #knownSlices
 
   /**
    * Known Shards are locations claims we have a URL for but no length. They can be combined with known
    * slices to make a location entry, but can't be used for blob fetching on their own
-  * @type {DigestMap<API.MultihashDigest, API.ShardLocation>}
+  * @type {API.DigestMap<API.MultihashDigest, API.ShardLocation>}
    *
    */
   #knownShards
@@ -48,7 +49,7 @@ export class IndexingServiceLocator {
    * Note: implemented as a Map not a Set so that we take advantage of the
    * key cache that `DigestMap` provides, so we don't duplicate base58 encoded
    * multihash keys.
-   * @type {Record<Kind, DigestMap<API.MultihashDigest, Promise<void>>>}
+   * @type {Record<Kind, API.DigestMap<API.MultihashDigest, Promise<void>>>}
    */
   #claimFetched
 
@@ -56,10 +57,10 @@ export class IndexingServiceLocator {
    *
    * @param {LocatorOptions} options
    */
-  constructor ({ client, spaces }) {
+  constructor ({ client, spaces, cache = new DigestMap() }) {
     this.#client = client
     this.#spaces = spaces ?? []
-    this.#cache = new DigestMap()
+    this.#cache = cache
     this.#claimFetched = {
       index_or_location: new DigestMap(),
       location: new DigestMap(),
@@ -230,7 +231,7 @@ export const create = (options) => new IndexingServiceLocator(options)
 
 /**
  * @template {API.OptionalRangeSite} T
- * @param {DigestMap<API.MultihashDigest, { digest: API.MultihashDigest, site: T[] }>} cache
+ * @param {API.DigestMap<API.MultihashDigest, { digest: API.MultihashDigest, site: T[] }>} cache
  * @param {API.MultihashDigest} digest
  * @param {T} site
  */

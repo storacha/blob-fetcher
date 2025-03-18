@@ -82,3 +82,9 @@ export interface NetworkError extends Failure {
   name: 'NetworkError'
   url: URI
 }
+
+export interface DigestMap<Key extends MultihashDigest<number>, Value> {
+  has(key: Key) : boolean
+  get(key: Key) : Value|undefined
+  set(key: Key, value: Value) : ThisType<this>
+}
