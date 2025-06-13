@@ -58,21 +58,22 @@
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20241022.0",
-    "@ipld/dag-ucan": "^3.4.0",
     "@opentelemetry/api": "^1.9.0",
-    "@storacha/indexing-service-client": "2.1.0",
-    "@web3-storage/blob-index": "^1.0.2",
-    "@web3-storage/content-claims": "5.2.0",
+    "@storacha/blob-index": "^1.1.0",
+    "@storacha/capabilities": "^1.7.0",
+    "@storacha/indexing-service-client": "^2.3.0",
+    "@web3-storage/content-claims": "^5.2.1",
     "multiformats": "^13.1.0",
     "multipart-byte-range": "^3.0.1",
     "p-defer": "^4.0.1",
-    "p-queue": "^8.0.1",
-    "zod": "^3.23.8"
+    "p-queue": "^8.0.1"
   },
   "devDependencies": {
+    "@ipld/dag-ucan": "^3.4.5",
     "@ipld/unixfs": "^3.0.0",
     "@types/node": "^22.9.1",
-    "@ucanto/interface": "10.1.1",
+    "@ucanto/core": "^10.4.0",
+    "@ucanto/interface": "^11.0.0",
     "@ucanto/principal": "^9.0.2",
     "@web3-storage/public-bucket": "^1.1.0",
     "c8": "^9.1.0",
@@ -80,7 +81,7 @@
     "entail": "^2.1.2",
     "ipfs-unixfs-exporter": "^13.5.0",
     "standard": "^17.1.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.8.3"
   },
   "standard": {
     "ignore": [

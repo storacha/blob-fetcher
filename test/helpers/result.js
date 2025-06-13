@@ -3,13 +3,14 @@
  *
  * @template T
  * @param {import('@ucanto/interface').Result<T, {}>} result
- * @returns {T}
  */
 export const unwrap = ({ ok, error }) => {
   if (error) {
     throw error
+  } else if (ok == null) {
+    throw new Error('invalid result, no error and null/undefined ok')
   } else {
-    return /** @type {T} */ (ok)
+    return ok
   }
 }
 

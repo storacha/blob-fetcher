@@ -1,14 +1,18 @@
-import { DigestMap } from '@web3-storage/blob-index'
+import { DigestMap } from '@storacha/blob-index'
+import * as Digest from 'multiformats/hashes/digest'
 import { NotFoundError } from '../lib.js'
 import { withSimpleSpan } from '../tracing/tracing.js'
-import { contentMultihash } from '@web3-storage/content-claims/client'
 
 /**
  * @import * as API from '../api.js'
- * @import {Kind, IndexingServiceClient as ServiceClient} from '@storacha/indexing-service-client/api'
+ * @import { Kind, IndexingServiceClient as ServiceClient, Claim } from '@storacha/indexing-service-client/api'
  * @import { DID } from '@ucanto/interface'
- * @import { ShardDigest, Position } from '@web3-storage/blob-index/types'
+ * @import { ShardDigest, Position } from '@storacha/blob-index/types'
  */
+
+/** @param {Claim} c */
+const contentDigest = c =>
+  'digest' in c.content ? Digest.decode(c.content.digest) : c.content.multihash
 
 /**
  * @typedef {Object} LocatorOptions
@@ -157,16 +161,16 @@ export class IndexingServiceLocator {
     for (const claim of result.ok.claims.values()) {
       if (claim.type === 'assert/location') {
         if (claim.range?.length != null) {
-          addOrSetLocation(this.#cache, contentMultihash(claim), {
+          addOrSetLocation(this.#cache, contentDigest(claim), {
             location: claim.location.map(l => new URL(l)),
             range: { offset: claim.range.offset, length: claim.range.length },
-            space: claim.space
+            space: claim.space?.did()
           })
         } else {
-          addOrSetLocation(this.#knownShards, contentMultihash(claim), {
+          addOrSetLocation(this.#knownShards, contentDigest(claim), {
             location: claim.location.map(l => new URL(l)),
             range: claim.range ? { offset: claim.range.offset } : undefined,
-            space: claim.space
+            space: claim.space?.did()
           })
         }
       }

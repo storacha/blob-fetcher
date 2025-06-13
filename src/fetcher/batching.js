@@ -1,6 +1,6 @@
 // eslint-disable-next-line
 import * as API from '../api.js'
-import { DigestMap } from '@web3-storage/blob-index'
+import { DigestMap } from '@storacha/blob-index'
 import defer from 'p-defer'
 import { NetworkError, NotFoundError } from '../lib.js'
 import { fetchBlob } from './simple.js'
