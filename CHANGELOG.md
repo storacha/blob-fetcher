@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/storacha/blob-fetcher/compare/v3.0.0...v4.0.0) (2025-06-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* update dependencies ([#38](https://github.com/storacha/blob-fetcher/issues/38))
+
+### Bug Fixes
+
+* update dependencies ([#38](https://github.com/storacha/blob-fetcher/issues/38)) ([2750824](https://github.com/storacha/blob-fetcher/commit/2750824b2448421cff0fb2cb65c3bf80d38d4d2f))
+
 ## [3.0.0](https://github.com/storacha/blob-fetcher/compare/v2.5.0...v3.0.0) (2025-02-05)
 
 
