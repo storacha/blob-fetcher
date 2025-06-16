@@ -3,21 +3,22 @@ import * as API from '../../src/api.js'
 import http from 'node:http'
 import { Writable } from 'node:stream'
 import { walkClaims } from '@web3-storage/content-claims/server'
-import { DigestMap, ShardedDAGIndex } from '@web3-storage/blob-index'
+import { DigestMap, ShardedDAGIndex } from '@storacha/blob-index'
 import * as Digest from 'multiformats/hashes/digest'
 import { base58btc } from 'multiformats/bases/base58'
 import { CARWriterStream, code as carCode } from 'carstream'
 import { sha256 } from 'multiformats/hashes/sha2'
 import * as Link from 'multiformats/link'
-import { Assert } from '@web3-storage/content-claims/capability'
-import { decode } from '@web3-storage/content-claims/client'
-import { extract } from '@web3-storage/blob-index/sharded-dag-index'
+import * as Assert from '@storacha/capabilities/assert'
+import { extract } from '@storacha/blob-index/sharded-dag-index'
 import { from } from '@storacha/indexing-service-client/query-result'
+import * as Claim from '@storacha/indexing-service-client/claim'
+import * as Delegation from '@ucanto/core/delegation'
 
 /**
- * @import {Claim, Kind, ShardedDAGIndexView} from "@storacha/indexing-service-client/api"
- * @import {KnownClaimTypes} from "@web3-storage/content-claims/client/api"
- * @import {Assert as EntailAssert} from 'entail'
+ * @import { Claim as LegacyClaim, Kind, ShardedDAGIndexView } from "@storacha/indexing-service-client/api"
+ * @import { KnownClaimTypes } from "@web3-storage/content-claims/client/api"
+ * @import { Assert as EntailAssert } from 'entail'
  */
 /**
  * @typedef {import('@web3-storage/content-claims/server/api').ClaimFetcher} ClaimFetcher
@@ -87,7 +88,7 @@ export const withTestIndexer = testfn =>
         location: ['assert/location'],
         standard: ['assert/index', 'assert/location', 'assert/equals']
       }
-      /** @type {Claim[]} */
+      /** @type {LegacyClaim[]} */
       let claims = []
       /** @type {Map<string, ShardedDAGIndexView>} */
       const indexes = new Map()
@@ -97,8 +98,12 @@ export const withTestIndexer = testfn =>
         const rawClaims = (await ctx.claimsStore.get(job.hash))
         const parsedClaims = []
         for (const rawClaim of rawClaims) {
-          const claim = await decode(rawClaim.bytes)
-          if (claim.type !== 'unknown' && claimMatches[job.kind].includes(claim.type)) {
+          const extractRes = await Delegation.extract(rawClaim.bytes)
+          if (extractRes.error) {
+            throw new Error('failed to extract claim', { cause: extractRes.error })
+          }
+          const claim = fromDelegation(extractRes.ok)
+          if (claimMatches[job.kind].includes(claim.type)) {
             parsedClaims.push(claim)
           }
         }
@@ -179,7 +184,7 @@ class ClaimStorage {
 /**
  * @param {import('@ucanto/interface').Signer} signer
  * @param {URL} location
- * @param {import('@web3-storage/blob-index/types').ShardedDAGIndex} index
+ * @param {import('@storacha/blob-index/types').ShardedDAGIndex} index
  */
 export const generateLocationClaims = async (signer, location, index) => {
   /** @type {import('@web3-storage/content-claims/server/api').Claim[]} */
@@ -240,7 +245,7 @@ const encode = async invocation => {
 /**
  * @param {import('@ucanto/interface').Signer} signer
  * @param {import('multiformats').UnknownLink} content
- * @param {import('@web3-storage/blob-index/types').ShardedDAGIndex} index
+ * @param {import('@storacha/blob-index/types').ShardedDAGIndex} index
  */
 export const generateIndexClaim = async (signer, content, index) => {
   const res = await ShardedDAGIndex.archive(index)
@@ -260,4 +265,10 @@ export const generateIndexClaim = async (signer, content, index) => {
     content: content.multihash,
     value: block.value
   }
+}
+
+/** @param {import('@ucanto/interface').Delegation} dlg */
+export const fromDelegation = dlg => {
+  const blocks = new Map([...dlg.export()].map(b => [String(b.cid), b]))
+  return Claim.view({ root: dlg.cid, blocks })
 }

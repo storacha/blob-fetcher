@@ -1,18 +1,31 @@
-import { DigestMap, ShardedDAGIndex } from '@web3-storage/blob-index'
-import { Assert } from '@web3-storage/content-claims/capability'
-import * as Claims from '@web3-storage/content-claims/client'
+import { DigestMap, ShardedDAGIndex } from '@storacha/blob-index'
+import * as Assert from '@storacha/capabilities/assert'
+import * as LegacyClaims from '@web3-storage/content-claims/client'
 import { withSimpleSpan } from '../tracing/tracing.js'
 import * as ed25519 from '@ucanto/principal/ed25519'
 import { base58btc } from 'multiformats/bases/base58'
 import { NotFoundError } from '../lib.js'
+import * as Claim from '@storacha/indexing-service-client/claim'
 import { from } from '@storacha/indexing-service-client/query-result'
 
 /**
  * @import * as API from '../api.js'
- * @import {Claim, IndexingServiceClient, Query, QueryError, QueryOk, Result, Kind} from '@storacha/indexing-service-client/api'
- * @import {KnownClaimTypes, LocationClaim} from '@web3-storage/content-claims/client/api'
+ * @import { IndexingServiceClient, Query, QueryError, QueryOk, Result, Kind } from '@storacha/indexing-service-client/api'
+ * @import { Claim as LegacyClaim, KnownClaimTypes, LocationClaim } from '@web3-storage/content-claims/client/api'
  * @import { R2Bucket } from '@cloudflare/workers-types'
  */
+
+/**
+ * Legacy claims are wire compatible but location claims use `Schema.didBytes`
+ * instead of `Schema.principal`.
+ *
+ * @param {LegacyClaim} lc
+ */
+const fromLegacyClaim = lc => {
+  const dlg = lc.delegation()
+  const blocks = new Map([...dlg.export()].map(b => [String(b.cid), b]))
+  return Claim.view({ root: dlg.cid, blocks })
+}
 
 /**
  * @typedef {{ serviceURL?: URL, carpark?: R2Bucket, carparkPublicBucketURL?: URL}} LocatorOptions
@@ -70,13 +83,13 @@ export class ContentClaimsClient {
    * @returns {Promise<Result<QueryOk, QueryError>>}
    */
   async queryClaims (q) {
-    /** @type {Claim[]} */
+    /** @type {LegacyClaim[]} */
     const claims = []
-    /** @type {Map<string, import('@web3-storage/blob-index/types').ShardedDAGIndexView>} */
+    /** @type {Map<string, import('@storacha/blob-index/types').ShardedDAGIndexView>} */
     const indexes = new Map()
     const kind = q.kind || 'standard'
     for (const digest of q.hashes) {
-      const digestClaims = (await Claims.read(digest, { serviceURL: this.#serviceURL })).filter((claim) => allowedClaimTypes[kind].includes(claim.type))
+      const digestClaims = (await LegacyClaims.read(digest, { serviceURL: this.#serviceURL })).filter((claim) => allowedClaimTypes[kind].includes(claim.type))
       let indexBytes
       if (digestClaims.length === 0) {
         const backups = await this.#carparkBackup(digest)
@@ -90,7 +103,7 @@ export class ContentClaimsClient {
           if (claim.type === 'assert/index') {
             this.#indexCids.set(claim.index.multihash, true)
           }
-          if (claim.type === 'assert/location' && this.#indexCids.has(Claims.contentMultihash(claim))) {
+          if (claim.type === 'assert/location' && this.#indexCids.has(LegacyClaims.contentMultihash(claim))) {
             try {
               const fetchRes = await fetchIndex(claim)
               indexBytes = await fetchRes.bytes()
@@ -109,7 +122,9 @@ export class ContentClaimsClient {
         indexes.set(base58btc.encode(digest.bytes), decodeRes.ok)
       }
     }
-    return /** @type {Result<QueryOk, QueryError>} */(await from({ claims, indexes }))
+    return /** @type {Result<QueryOk, QueryError>} */ (
+      await from({ claims: claims.map(fromLegacyClaim), indexes })
+    )
   }
 
   /**
@@ -135,7 +150,7 @@ export class ContentClaimsClient {
       }
     }
     return {
-      claim: await Claims.decodeDelegation(await Assert.location
+      claim: await LegacyClaims.decodeDelegation(await Assert.location
         .invoke({
           issuer: await this.#getSigner(),
           audience: await this.#getSigner(),
@@ -188,6 +203,6 @@ const fetchIndex = withSimpleSpan('fetchIndex',
       return res
     }
 
-    throw new NotFoundError(Claims.contentMultihash(locationClaim))
+    throw new NotFoundError(LegacyClaims.contentMultihash(locationClaim))
   }
 )
