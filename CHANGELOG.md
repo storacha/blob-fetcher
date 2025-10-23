@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.1.0](https://github.com/storacha/blob-fetcher/compare/v4.0.0...v4.1.0) (2025-10-23)
+
+
+### Features
+
+* **deps:** upgrade to latest indexing-service-client ([e36586d](https://github.com/storacha/blob-fetcher/commit/e36586d0d6d7dbb15cb11015616edf914c8385f5))
+
 ## [4.0.0](https://github.com/storacha/blob-fetcher/compare/v3.0.0...v4.0.0) (2025-06-16)
 
 
