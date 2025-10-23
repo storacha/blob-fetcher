@@ -5,7 +5,7 @@ import { withSimpleSpan } from '../tracing/tracing.js'
 
 /**
  * @import * as API from '../api.js'
- * @import { Kind, IndexingServiceClient as ServiceClient, Claim } from '@storacha/indexing-service-client/api'
+ * @import { Kind, IndexingServiceQueryClient as ServiceClient, Claim } from '@storacha/indexing-service-client/api'
  * @import { DID } from '@ucanto/interface'
  * @import { ShardDigest, Position } from '@storacha/blob-index/types'
  */

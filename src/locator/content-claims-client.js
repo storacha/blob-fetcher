@@ -10,7 +10,7 @@ import { from } from '@storacha/indexing-service-client/query-result'
 
 /**
  * @import * as API from '../api.js'
- * @import { IndexingServiceClient, Query, QueryError, QueryOk, Result, Kind } from '@storacha/indexing-service-client/api'
+ * @import { IndexingServiceQueryClient, Query, QueryError, QueryOk, Result, Kind } from '@storacha/indexing-service-client/api'
  * @import { Claim as LegacyClaim, KnownClaimTypes, LocationClaim } from '@web3-storage/content-claims/client/api'
  * @import { R2Bucket } from '@cloudflare/workers-types'
  */
@@ -33,7 +33,7 @@ const fromLegacyClaim = lc => {
 
 /**
  * ContentClaimsClient mimics the indexing service client using the content claims service
- * @implements {IndexingServiceClient}
+ * @implements {IndexingServiceQueryClient}
  */
 export class ContentClaimsClient {
   /**

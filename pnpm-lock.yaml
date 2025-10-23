@@ -21,8 +21,8 @@ importers:
         specifier: ^1.7.0
         version: 1.7.0
       '@storacha/indexing-service-client':
-        specifier: ^2.3.0
-        version: 2.3.0
+        specifier: ^2.6.4
+        version: 2.6.4
       '@web3-storage/content-claims':
         specifier: ^5.2.1
         version: 5.2.1
@@ -239,8 +239,8 @@ packages:
   '@storacha/capabilities@1.7.0':
     resolution: {integrity: sha512-YMIuocTgaVpqlgyds5NG+eJqfr+dfFkxdk33lJcFIRD30SZaGiA8vQ0ZPUHqcC9Azj0XZCRexz6nHXqEsn1aag==}
 
-  '@storacha/indexing-service-client@2.3.0':
-    resolution: {integrity: sha512-BOHUVe63PubgxzRXM80bZ4KzlD/yet/S0xi87KTbhc4rKzcc73XbbVZgGw02zx8uDgazzOU5ucJXdL6dFwkOag==}
+  '@storacha/indexing-service-client@2.6.4':
+    resolution: {integrity: sha512-Big8lZbG8DRDrY64kW5BRCDFFz0jDWh8+SDw0yL6bUlt8oxJKakNtx2fWGMkVVoooWo7ldb7IdtO1yzmD5cVWw==}
 
   '@storacha/one-webcrypto@1.0.1':
     resolution: {integrity: sha512-bD+vWmcgsEBqU0Dz04BR43SA03bBoLTAY29vaKasY9Oe8cb6XIP0/vkm0OS2UwKC13c8uRgFW4rjJUgDCNLejQ==}
@@ -1709,13 +1709,16 @@ snapshots:
       '@web3-storage/data-segment': 5.3.0
       multiformats: 13.3.6
 
-  '@storacha/indexing-service-client@2.3.0':
+  '@storacha/indexing-service-client@2.6.4':
     dependencies:
       '@ipld/dag-cbor': 9.2.4
+      '@ipld/dag-ucan': 3.4.5
       '@storacha/blob-index': 1.1.0
       '@storacha/capabilities': 1.7.0
+      '@ucanto/client': 9.0.1
       '@ucanto/core': 10.4.0
       '@ucanto/interface': 10.3.0
+      '@ucanto/transport': 9.2.0
       multiformats: 13.3.6
 
   '@storacha/one-webcrypto@1.0.1': {}
