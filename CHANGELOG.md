@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.2.2](https://github.com/storacha/blob-fetcher/compare/v4.2.1...v4.2.2) (2025-10-27)
+
+
+### Bug Fixes
+
+* tweak README to test another release ([fb61653](https://github.com/storacha/blob-fetcher/commit/fb61653764baae34c21eb9a65742e5881c12dfdf))
+* tweak README to test another release ([#46](https://github.com/storacha/blob-fetcher/issues/46)) ([287812e](https://github.com/storacha/blob-fetcher/commit/287812e67520bae2bb4c4d5e5040c790ca73d035))
+
 ## [4.2.1](https://github.com/storacha/blob-fetcher/compare/v4.2.0...v4.2.1) (2025-10-27)
 
 
