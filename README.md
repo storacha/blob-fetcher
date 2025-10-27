@@ -36,3 +36,4 @@ Feel free to join in. All welcome. [Open an issue](https://github.com/w3s-projec
 ## License
 
 Dual-licensed under [MIT / Apache 2.0](https://github.com/w3s-project/blob-fetcher/blob/main/LICENSE.md)
+

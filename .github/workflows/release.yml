@@ -9,6 +9,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     steps:
       - name: Release Please
         uses: googleapis/release-please-action@v4
@@ -36,7 +37,5 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
       - name: Publish to npm
         run: npm publish --access=public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
         if: ${{ steps.release.outputs.release_created }}
         
