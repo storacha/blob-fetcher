@@ -4,6 +4,10 @@
   "description": "A blob fetcher that batches requests and reads multipart byterange responses.",
   "main": "src/index.js",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/storacha/blob-fetcher.git"
+  },
   "scripts": {
     "build": "tsc --build",
     "coverage": "c8 --reporter text --reporter html npm run test",
