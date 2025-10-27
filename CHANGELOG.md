@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.2.0](https://github.com/storacha/blob-fetcher/compare/v4.1.0...v4.2.0) (2025-10-27)
+
+
+### Features
+
+* **locator:** support compressed queries ([5d97073](https://github.com/storacha/blob-fetcher/commit/5d97073db888d5d4731ef207af937c35cabc81e1))
+* **locator:** support compressed queries ([#42](https://github.com/storacha/blob-fetcher/issues/42)) ([16eba09](https://github.com/storacha/blob-fetcher/commit/16eba09365569fd345302cbf2d2c2a0f14a999fe))
+
+
+### Bug Fixes
+
+* **deps:** update to fixed js-indexing-service-client ([0413b46](https://github.com/storacha/blob-fetcher/commit/0413b460925bc834da0e2682b9a6dbe3a7f9f0b5))
+* **test:** fix locator spec ([500b611](https://github.com/storacha/blob-fetcher/commit/500b61198b7ee1c5cd362c4a1300a613eda1583b))
+
 ## [4.1.0](https://github.com/storacha/blob-fetcher/compare/v4.0.0...v4.1.0) (2025-10-23)
 
 
