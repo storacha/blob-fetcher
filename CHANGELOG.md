@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.2.1](https://github.com/storacha/blob-fetcher/compare/v4.2.0...v4.2.1) (2025-10-27)
+
+
+### Bug Fixes
+
+* add id-token permission for oidc publishing ([e4b987c](https://github.com/storacha/blob-fetcher/commit/e4b987c219c60d02d16b7be2184db67124723a0f))
+* add id-token permission for oidc publishing ([#44](https://github.com/storacha/blob-fetcher/issues/44)) ([3f30785](https://github.com/storacha/blob-fetcher/commit/3f307852773a9ebe7ac5b282ee09b2ad752c834f))
+
 ## [4.2.0](https://github.com/storacha/blob-fetcher/compare/v4.1.0...v4.2.0) (2025-10-27)
 
 
