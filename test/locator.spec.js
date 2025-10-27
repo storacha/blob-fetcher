@@ -96,7 +96,7 @@ export const testIndexingServiceLocator = {
     const locator = new IndexingServiceLocator({
       client: new Client({
         fetch: stubFetch({
-          'https://indexer.storacha.network/claims?multihash=zQmRm3SMS4EbiKYy7VeV3zqXqzyr76mq9b2zg3Tij3VhKUG&kind=standard':
+          'https://indexer.storacha.network/claims?multihash=zQmRm3SMS4EbiKYy7VeV3zqXqzyr76mq9b2zg3Tij3VhKUG&type=standard':
             () => fs.promises.readFile(fixturePath)
         })
       })
@@ -140,42 +140,48 @@ export const testIndexingServiceLocator = {
     const indexingService = await ed25519.Signer.generate()
     const queryResultContents = {
       claims: [
-        fromDelegation(await Assert.location
-          .invoke({
-            issuer: indexingService,
-            audience: indexingService,
-            with: indexingService.did(),
-            nb: {
-              content: { digest: shard1Link.multihash.bytes },
-              location: [
-                'http://example.com/shard1/replica1',
-                'http://example.com/shard1/replica2'
-              ]
-            }
-          })
-          .delegate()),
-        fromDelegation(await Assert.location
-          .invoke({
-            issuer: indexingService,
-            audience: indexingService,
-            with: indexingService.did(),
-            nb: {
-              content: { digest: shard2Link.multihash.bytes },
-              location: ['http://example.com/shard2/replica1']
-            }
-          })
-          .delegate()),
-        fromDelegation(await Assert.location
-          .invoke({
-            issuer: indexingService,
-            audience: indexingService,
-            with: indexingService.did(),
-            nb: {
-              content: { digest: shard3Link.multihash.bytes },
-              location: ['http://example.com/shard3/replica1']
-            }
-          })
-          .delegate())
+        fromDelegation(
+          await Assert.location
+            .invoke({
+              issuer: indexingService,
+              audience: indexingService,
+              with: indexingService.did(),
+              nb: {
+                content: { digest: shard1Link.multihash.bytes },
+                location: [
+                  'http://example.com/shard1/replica1',
+                  'http://example.com/shard1/replica2'
+                ]
+              }
+            })
+            .delegate()
+        ),
+        fromDelegation(
+          await Assert.location
+            .invoke({
+              issuer: indexingService,
+              audience: indexingService,
+              with: indexingService.did(),
+              nb: {
+                content: { digest: shard2Link.multihash.bytes },
+                location: ['http://example.com/shard2/replica1']
+              }
+            })
+            .delegate()
+        ),
+        fromDelegation(
+          await Assert.location
+            .invoke({
+              issuer: indexingService,
+              audience: indexingService,
+              with: indexingService.did(),
+              nb: {
+                content: { digest: shard3Link.multihash.bytes },
+                location: ['http://example.com/shard3/replica1']
+              }
+            })
+            .delegate()
+        )
       ],
       indexes: new Map([
         ['the context id', index1],
@@ -188,22 +194,23 @@ export const testIndexingServiceLocator = {
         fetch: stubFetch({
           [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
             content1Link.multihash.bytes
-          )}&kind=standard`]: () => archivedQueryResultFrom(queryResultContents, assert),
+          )}&type=standard`]: () =>
+            archivedQueryResultFrom(queryResultContents, assert),
           [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
             content2Link.multihash.bytes
-          )}&kind=standard`]: () => {
+          )}&type=standard`]: () => {
             assert.fail(new Error('Should not have requested content2'))
             return null
           },
           [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
             content3Link.multihash.bytes
-          )}&kind=standard`]: () => {
+          )}&type=standard`]: () => {
             assert.fail(new Error('Should not have requested content3'))
             return null
           },
           [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
             content4Link.multihash.bytes
-          )}&kind=standard`]: () => {
+          )}&type=standard`]: () => {
             assert.fail(new Error('Should not have requested content4'))
             return null
           }
@@ -269,177 +276,192 @@ export const testIndexingServiceLocator = {
       }
     })
   },
-  'should fetch location claims for index claims if they are not present': async (assert) => {
-    const content1Link = createTestCID('content1')
-    // content2Link is in the same shard, but a different slice
-    const content2Link = createTestCID('content2')
-    // content3Link is in a different shard, but the same index
-    const content3Link = createTestCID('content3')
+  'should fetch location claims for index claims if they are not present':
+    async (assert) => {
+      const content1Link = createTestCID('content1')
+      // content2Link is in the same shard, but a different slice
+      const content2Link = createTestCID('content2')
+      // content3Link is in a different shard, but the same index
+      const content3Link = createTestCID('content3')
 
-    const index1 = ShardedDAGIndex.create(content1Link)
-    const shard1Link = createTestCID('shard1')
-    const shard2Link = createTestCID('shard2')
-    index1.setSlice(shard1Link.multihash, content1Link.multihash, [110, 120])
-    index1.setSlice(shard1Link.multihash, content2Link.multihash, [210, 220])
-    index1.setSlice(shard2Link.multihash, content3Link.multihash, [310, 320])
+      const index1 = ShardedDAGIndex.create(content1Link)
+      const shard1Link = createTestCID('shard1')
+      const shard2Link = createTestCID('shard2')
+      index1.setSlice(shard1Link.multihash, content1Link.multihash, [110, 120])
+      index1.setSlice(shard1Link.multihash, content2Link.multihash, [210, 220])
+      index1.setSlice(shard2Link.multihash, content3Link.multihash, [310, 320])
 
-    const archive = await index1.archive()
-    if (!archive.ok) {
-      assert.fail('unable to create archive')
-      return
-    }
-    const indexDigest = await sha256.digest(archive.ok)
-    const indexLink = Link.create(carCode, indexDigest)
-    const indexingService = await ed25519.Signer.generate()
-    const firstQueryResultContents = {
-      claims: [
-        fromDelegation(await Assert.index
-          .invoke({
-            issuer: indexingService,
-            audience: indexingService,
-            with: indexingService.did(),
-            nb: {
-              content: { digest: content1Link.multihash.bytes },
-              index: indexLink
+      const archive = await index1.archive()
+      if (!archive.ok) {
+        assert.fail('unable to create archive')
+        return
+      }
+      const indexDigest = await sha256.digest(archive.ok)
+      const indexLink = Link.create(carCode, indexDigest)
+      const indexingService = await ed25519.Signer.generate()
+      const firstQueryResultContents = {
+        claims: [
+          fromDelegation(
+            await Assert.index
+              .invoke({
+                issuer: indexingService,
+                audience: indexingService,
+                with: indexingService.did(),
+                nb: {
+                  content: { digest: content1Link.multihash.bytes },
+                  index: indexLink
+                }
+              })
+              .delegate()
+          )
+        ],
+        indexes: new Map()
+      }
+
+      const indexQueryResultContents = {
+        claims: [
+          fromDelegation(
+            await Assert.location
+              .invoke({
+                issuer: indexingService,
+                audience: indexingService,
+                with: indexingService.did(),
+                nb: {
+                  content: { digest: indexLink.multihash.bytes },
+                  location: ['http://example.com/index/replica1']
+                }
+              })
+              .delegate()
+          )
+        ],
+        indexes: new Map([['the context id', index1]])
+      }
+
+      const firstShardLocationQuery = {
+        claims: [
+          fromDelegation(
+            await Assert.location
+              .invoke({
+                issuer: indexingService,
+                audience: indexingService,
+                with: indexingService.did(),
+                nb: {
+                  content: { digest: shard1Link.multihash.bytes },
+                  location: [
+                    'http://example.com/shard1/replica1',
+                    'http://example.com/shard1/replica2'
+                  ]
+                }
+              })
+              .delegate()
+          )
+        ],
+        indexes: new Map()
+      }
+
+      const secondShardLocationQuery = {
+        claims: [
+          fromDelegation(
+            await Assert.location
+              .invoke({
+                issuer: indexingService,
+                audience: indexingService,
+                with: indexingService.did(),
+                nb: {
+                  content: { digest: shard2Link.multihash.bytes },
+                  location: ['http://example.com/shard2/replica1']
+                }
+              })
+              .delegate()
+          )
+        ],
+        indexes: new Map()
+      }
+
+      const locator = new IndexingServiceLocator({
+        client: new Client({
+          fetch: stubFetch({
+            [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
+              content1Link.multihash.bytes
+            )}&type=standard`]: () =>
+              archivedQueryResultFrom(firstQueryResultContents, assert),
+            [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
+              indexLink.multihash.bytes
+            )}&type=location`]: () =>
+              archivedQueryResultFrom(indexQueryResultContents, assert),
+            [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
+              shard1Link.multihash.bytes
+            )}&type=location`]: () =>
+              archivedQueryResultFrom(firstShardLocationQuery, assert),
+            [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
+              shard2Link.multihash.bytes
+            )}&type=location`]: () =>
+              archivedQueryResultFrom(secondShardLocationQuery, assert),
+            [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
+              content2Link.multihash.bytes
+            )}&type=standard`]: () => {
+              assert.fail(new Error('Should not have requested content2'))
+              return null
+            },
+            [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
+              content3Link.multihash.bytes
+            )}&type=standard`]: () => {
+              assert.fail(new Error('Should not have requested content3'))
+              return null
             }
           })
-          .delegate())
-      ],
-      indexes: new Map()
-    }
-
-    const indexQueryResultContents = {
-      claims: [
-        fromDelegation(await Assert.location
-          .invoke({
-            issuer: indexingService,
-            audience: indexingService,
-            with: indexingService.did(),
-            nb: {
-              content: { digest: indexLink.multihash.bytes },
-              location: ['http://example.com/index/replica1']
-            }
-          })
-          .delegate())
-      ],
-      indexes: new Map([
-        ['the context id', index1]
-      ])
-    }
-
-    const firstShardLocationQuery = {
-      claims: [
-        fromDelegation(await Assert.location
-          .invoke({
-            issuer: indexingService,
-            audience: indexingService,
-            with: indexingService.did(),
-            nb: {
-              content: { digest: shard1Link.multihash.bytes },
-              location: ['http://example.com/shard1/replica1',
-                'http://example.com/shard1/replica2']
-            }
-          })
-          .delegate())
-      ],
-      indexes: new Map()
-    }
-
-    const secondShardLocationQuery = {
-      claims: [
-        fromDelegation(await Assert.location
-          .invoke({
-            issuer: indexingService,
-            audience: indexingService,
-            with: indexingService.did(),
-            nb: {
-              content: { digest: shard2Link.multihash.bytes },
-              location: ['http://example.com/shard2/replica1']
-            }
-          })
-          .delegate())
-      ],
-      indexes: new Map()
-    }
-
-    const locator = new IndexingServiceLocator({
-      client: new Client({
-        fetch: stubFetch({
-          [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
-            content1Link.multihash.bytes
-          )}&kind=standard`]: () => archivedQueryResultFrom(firstQueryResultContents, assert),
-          [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
-            indexLink.multihash.bytes
-          )}&kind=location`]: () => archivedQueryResultFrom(indexQueryResultContents, assert),
-          [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
-            shard1Link.multihash.bytes
-          )}&kind=location`]: () => archivedQueryResultFrom(firstShardLocationQuery, assert),
-          [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
-            shard2Link.multihash.bytes
-          )}&kind=location`]: () => archivedQueryResultFrom(secondShardLocationQuery, assert),
-          [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
-            content2Link.multihash.bytes
-          )}&kind=standard`]: () => {
-            assert.fail(new Error('Should not have requested content2'))
-            return null
-          },
-          [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
-            content3Link.multihash.bytes
-          )}&kind=standard`]: () => {
-            assert.fail(new Error('Should not have requested content3'))
-            return null
-          }
         })
       })
-    })
 
-    assert.deepEqual(await locator.locate(content1Link.multihash), {
-      ok: {
-        digest: content1Link.multihash,
-        site: [
-          {
-            location: [
-              new URL('http://example.com/shard1/replica1'),
-              new URL('http://example.com/shard1/replica2')
-            ],
-            range: { offset: 110, length: 120 },
-            space: undefined
-          }
-        ]
-      }
-    })
+      assert.deepEqual(await locator.locate(content1Link.multihash), {
+        ok: {
+          digest: content1Link.multihash,
+          site: [
+            {
+              location: [
+                new URL('http://example.com/shard1/replica1'),
+                new URL('http://example.com/shard1/replica2')
+              ],
+              range: { offset: 110, length: 120 },
+              space: undefined
+            }
+          ]
+        }
+      })
 
-    assert.deepEqual(await locator.locate(content2Link.multihash), {
-      ok: {
-        digest: content2Link.multihash,
-        site: [
-          {
-            location: [
-              new URL('http://example.com/shard1/replica1'),
-              new URL('http://example.com/shard1/replica2')
-            ],
-            range: { offset: 210, length: 220 },
-            space: undefined
-          }
-        ]
-      }
-    })
+      assert.deepEqual(await locator.locate(content2Link.multihash), {
+        ok: {
+          digest: content2Link.multihash,
+          site: [
+            {
+              location: [
+                new URL('http://example.com/shard1/replica1'),
+                new URL('http://example.com/shard1/replica2')
+              ],
+              range: { offset: 210, length: 220 },
+              space: undefined
+            }
+          ]
+        }
+      })
 
-    assert.deepEqual(await locator.locate(content3Link.multihash), {
-      ok: {
-        digest: content3Link.multihash,
-        site: [
-          {
-            location: [new URL('http://example.com/shard2/replica1')],
-            range: { offset: 310, length: 320 },
-            space: undefined
-          }
-        ]
-      }
-    })
-  },
+      assert.deepEqual(await locator.locate(content3Link.multihash), {
+        ok: {
+          digest: content3Link.multihash,
+          site: [
+            {
+              location: [new URL('http://example.com/shard2/replica1')],
+              range: { offset: 310, length: 320 },
+              space: undefined
+            }
+          ]
+        }
+      })
+    },
 
-  'will fetch from a seperate shard in an index on a subsequent call': async (assert) => {
+  'will fetch from a seperate shard in an index on a subsequent call': async (
+    assert
+  ) => {
     const content1Link = createTestCID('content1')
     // content2Link is in the same shard, but a different slice
     const content2Link = createTestCID('content2')
@@ -456,38 +478,40 @@ export const testIndexingServiceLocator = {
     const indexingService = await ed25519.Signer.generate()
     const queryResultContents = {
       claims: [
-        fromDelegation(await Assert.location
-          .invoke({
-            issuer: indexingService,
-            audience: indexingService,
-            with: indexingService.did(),
-            nb: {
-              content: { digest: shard1Link.multihash.bytes },
-              location: [
-                'http://example.com/shard1/replica1',
-                'http://example.com/shard1/replica2'
-              ]
-            }
-          })
-          .delegate())
+        fromDelegation(
+          await Assert.location
+            .invoke({
+              issuer: indexingService,
+              audience: indexingService,
+              with: indexingService.did(),
+              nb: {
+                content: { digest: shard1Link.multihash.bytes },
+                location: [
+                  'http://example.com/shard1/replica1',
+                  'http://example.com/shard1/replica2'
+                ]
+              }
+            })
+            .delegate()
+        )
       ],
-      indexes: new Map([
-        ['the context id', index1]
-      ])
+      indexes: new Map([['the context id', index1]])
     }
     const locationQueryResultContents = {
       claims: [
-        fromDelegation(await Assert.location
-          .invoke({
-            issuer: indexingService,
-            audience: indexingService,
-            with: indexingService.did(),
-            nb: {
-              content: { digest: shard2Link.multihash.bytes },
-              location: ['http://example.com/shard2/replica1']
-            }
-          })
-          .delegate())
+        fromDelegation(
+          await Assert.location
+            .invoke({
+              issuer: indexingService,
+              audience: indexingService,
+              with: indexingService.did(),
+              nb: {
+                content: { digest: shard2Link.multihash.bytes },
+                location: ['http://example.com/shard2/replica1']
+              }
+            })
+            .delegate()
+        )
       ],
       indexes: new Map()
     }
@@ -497,19 +521,21 @@ export const testIndexingServiceLocator = {
         fetch: stubFetch({
           [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
             content1Link.multihash.bytes
-          )}&kind=standard`]: () => archivedQueryResultFrom(queryResultContents, assert),
+          )}&type=standard`]: () =>
+            archivedQueryResultFrom(queryResultContents, assert),
           [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
             shard2Link.multihash.bytes
-          )}&kind=location`]: () => archivedQueryResultFrom(locationQueryResultContents, assert),
+          )}&type=location`]: () =>
+            archivedQueryResultFrom(locationQueryResultContents, assert),
           [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
             content2Link.multihash.bytes
-          )}&kind=standard`]: () => {
+          )}&type=standard`]: () => {
             assert.fail(new Error('Should not have requested content3'))
             return null
           },
           [`https://indexer.storacha.network/claims?multihash=${base58btc.encode(
             content3Link.multihash.bytes
-          )}&kind=standard`]: () => {
+          )}&type=standard`]: () => {
             assert.fail(new Error('Should not have requested content3'))
             return null
           }
@@ -570,8 +596,8 @@ export const testIndexingServiceLocator = {
           ['https://indexer.storacha.network/claims' +
           '?multihash=zQmRm3SMS4EbiKYy7VeV3zqXqzyr76mq9b2zg3Tij3VhKUG' +
           '&spaces=did%3Akey%3AzSpace1' +
-          '&spaces=did%3Akey%3AzSpace2' + '&kind=standard']: async () =>
-            archivedQueryResultFrom({}, assert)
+          '&spaces=did%3Akey%3AzSpace2' +
+          '&type=standard']: async () => archivedQueryResultFrom({}, assert)
         })
       })
     })
@@ -589,8 +615,8 @@ export const testIndexingServiceLocator = {
           '&spaces=did%3Akey%3AzSpace1' +
           '&spaces=did%3Akey%3AzSpace2' +
           '&spaces=did%3Akey%3AzSpace3' +
-          '&spaces=did%3Akey%3AzSpace4' + '&kind=standard']: () =>
-            archivedQueryResultFrom({}, assert)
+          '&spaces=did%3Akey%3AzSpace4' +
+          '&type=standard']: () => archivedQueryResultFrom({}, assert)
         })
       })
     }).scopeToSpaces(['did:key:zSpace1', 'did:key:zSpace3', 'did:key:zSpace4'])

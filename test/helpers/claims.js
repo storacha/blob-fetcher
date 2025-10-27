@@ -1,5 +1,5 @@
 // eslint-disable-next-line
-import * as API from '../../src/api.js'
+import * as API from "../../src/api.js";
 import http from 'node:http'
 import { Writable } from 'node:stream'
 import { walkClaims } from '@web3-storage/content-claims/server'
@@ -30,136 +30,160 @@ import * as Delegation from '@ucanto/core/delegation'
  * @template {{}} T
  * @param {(assert: EntailAssert, ctx: T & ClaimsServerContext) => unknown} testfn
  */
-export const withClaimsServer = testfn =>
+export const withClaimsServer = (testfn) =>
   /** @type {(assert: EntailAssert, ctx: T) => unknown} */
   // eslint-disable-next-line no-extra-parens
-  (async (assert, ctx) => {
-    const claimsStore = new ClaimStorage()
-    const server = http.createServer((req, res) => {
-      const url = new URL(req.url ?? '', claimsURL)
-      const digest = Digest.decode(base58btc.decode(url.pathname.split('/')[3]))
-      walkClaims({ claimFetcher: claimsStore }, digest, new Set())
-        .pipeThrough(new CARWriterStream())
-        .pipeTo(Writable.toWeb(res))
-    })
-    await new Promise(resolve => server.listen(resolve))
-    // @ts-expect-error
-    const { port } = server.address()
-    const claimsURL = new URL(`http://127.0.0.1:${port}`)
-    try {
-      await testfn(assert, { ...ctx, claimsStore, claimsURL })
-    } finally {
-      server.close()
+  (
+    async (assert, ctx) => {
+      const claimsStore = new ClaimStorage()
+      const server = http.createServer((req, res) => {
+        const url = new URL(req.url ?? '', claimsURL)
+        const digest = Digest.decode(
+          base58btc.decode(url.pathname.split('/')[3])
+        )
+        walkClaims({ claimFetcher: claimsStore }, digest, new Set())
+          .pipeThrough(new CARWriterStream())
+          .pipeTo(Writable.toWeb(res))
+      })
+      await new Promise((resolve) => server.listen(resolve))
+      // @ts-expect-error
+      const { port } = server.address()
+      const claimsURL = new URL(`http://127.0.0.1:${port}`)
+      try {
+        await testfn(assert, { ...ctx, claimsStore, claimsURL })
+      } finally {
+        server.close()
+      }
     }
-  })
+  )
 
 /**
  * @template {ClaimsServerContext} T
  * @param {(assert: EntailAssert, ctx: T & IndexingServerContext) => unknown} testfn
  */
-export const withTestIndexer = testfn =>
-/** @type {(assert: EntailAssert, ctx: T) => unknown} */
-// eslint-disable-next-line no-extra-parens
-  (async (assert, ctx) => {
-    const server = http.createServer(async (req, res) => {
-      const url = new URL(req.url ?? '', indexerURL)
-      const hashes = url.searchParams.getAll('multihash').map((hash) =>
-        Digest.decode(base58btc.decode(hash))
-      )
-      /**
-       * @param {string} kindString
-       * @returns {kindString is Kind}
-       */
-      const isKind = (kindString) => ['index_or_location', 'location', 'standard'].includes(kindString)
-      const kind = url.searchParams.get('kind') || 'standard'
-      if (!isKind(kind)) {
-        res.writeHead(400, { 'Content-Type': 'text/plain' })
-        res.end('kind must be a string')
-        return
-      }
-      /** @type {{ hash: API.MultihashDigest, kind: Kind, indexForMh?: API.MultihashDigest }[]} */
-      const jobs = hashes.map((hash) => ({
-        hash,
-        kind
-      }))
-      /** @type {Record<Kind, KnownClaimTypes[]>} */
-      const claimMatches = {
-        index_or_location: ['assert/location', 'assert/index'],
-        location: ['assert/location'],
-        standard: ['assert/index', 'assert/location', 'assert/equals']
-      }
-      /** @type {LegacyClaim[]} */
-      let claims = []
-      /** @type {Map<string, ShardedDAGIndexView>} */
-      const indexes = new Map()
-      for (;;) {
-        const job = jobs.shift()
-        if (!job) break
-        const rawClaims = (await ctx.claimsStore.get(job.hash))
-        const parsedClaims = []
-        for (const rawClaim of rawClaims) {
-          const extractRes = await Delegation.extract(rawClaim.bytes)
-          if (extractRes.error) {
-            throw new Error('failed to extract claim', { cause: extractRes.error })
-          }
-          const claim = fromDelegation(extractRes.ok)
-          if (claimMatches[job.kind].includes(claim.type)) {
-            parsedClaims.push(claim)
-          }
+export const withTestIndexer = (testfn) =>
+  /** @type {(assert: EntailAssert, ctx: T) => unknown} */
+  // eslint-disable-next-line no-extra-parens
+  (
+    async (assert, ctx) => {
+      const server = http.createServer(async (req, res) => {
+        const url = new URL(req.url ?? '', indexerURL)
+        const hashes = url.searchParams
+          .getAll('multihash')
+          .map((hash) => Digest.decode(base58btc.decode(hash)))
+        /**
+         * @param {string} kindString
+         * @returns {kindString is Kind}
+         */
+        const isKind = (kindString) =>
+          ['index_or_location', 'location', 'standard'].includes(kindString)
+        const kind = url.searchParams.get('kind') || 'standard'
+        if (!isKind(kind)) {
+          res.writeHead(400, { 'Content-Type': 'text/plain' })
+          res.end('kind must be a string')
+          return
         }
-        claims = claims.concat(parsedClaims)
-        for (const claim of parsedClaims) {
-          switch (claim.type) {
-            case 'assert/index':
-              jobs.push({ hash: claim.index.multihash, kind: 'index_or_location', indexForMh: job.hash })
-              break
-            case 'assert/location':
-              if (job.indexForMh !== undefined) {
-                /** @type {HeadersInit} */
-                const headers = {}
-                if (claim.range) {
-                  headers.Range = `bytes=${claim.range.offset}-${claim.range.length ? claim.range.offset + claim.range.length - 1 : ''}`
-                }
-                const indexRes = await fetch(claim.location[0], { headers })
-                if (indexRes.status >= 200 && indexRes.status < 300) {
-                  const result = extract(await indexRes.bytes())
-                  if (result.ok) {
-                    indexes.set(base58btc.encode(job.hash.bytes), result.ok)
-                    result.ok.shards.forEach((shardIndex, hash) => {
-                      if (job.indexForMh && shardIndex.has(job.indexForMh)) {
-                        jobs.push({ hash, kind: 'index_or_location' })
-                      }
-                    })
+        /** @type {{ hash: API.MultihashDigest, kind: Kind, indexForMh?: API.MultihashDigest }[]} */
+        const jobs = hashes.map((hash) => ({
+          hash,
+          kind
+        }))
+        /** @type {Record<Kind, KnownClaimTypes[]>} */
+        const claimMatches = {
+          index_or_location: ['assert/location', 'assert/index'],
+          location: ['assert/location'],
+          standard: ['assert/index', 'assert/location', 'assert/equals'],
+          standard_compressed: [
+            'assert/index',
+            'assert/location',
+            'assert/equals'
+          ]
+        }
+        /** @type {LegacyClaim[]} */
+        let claims = []
+        /** @type {Map<string, ShardedDAGIndexView>} */
+        const indexes = new Map()
+        for (;;) {
+          const job = jobs.shift()
+          if (!job) break
+          const rawClaims = await ctx.claimsStore.get(job.hash)
+          const parsedClaims = []
+          for (const rawClaim of rawClaims) {
+            const extractRes = await Delegation.extract(rawClaim.bytes)
+            if (extractRes.error) {
+              throw new Error('failed to extract claim', {
+                cause: extractRes.error
+              })
+            }
+            const claim = fromDelegation(extractRes.ok)
+            if (claimMatches[job.kind].includes(claim.type)) {
+              parsedClaims.push(claim)
+            }
+          }
+          claims = claims.concat(parsedClaims)
+          for (const claim of parsedClaims) {
+            switch (claim.type) {
+              case 'assert/index':
+                jobs.push({
+                  hash: claim.index.multihash,
+                  kind: 'index_or_location',
+                  indexForMh: job.hash
+                })
+                break
+              case 'assert/location':
+                if (job.indexForMh !== undefined) {
+                  /** @type {HeadersInit} */
+                  const headers = {}
+                  if (claim.range) {
+                    headers.Range = `bytes=${claim.range.offset}-${
+                      claim.range.length
+                        ? claim.range.offset + claim.range.length - 1
+                        : ''
+                    }`
+                  }
+                  const indexRes = await fetch(claim.location[0], { headers })
+                  if (indexRes.status >= 200 && indexRes.status < 300) {
+                    const result = extract(await indexRes.bytes())
+                    if (result.ok) {
+                      indexes.set(base58btc.encode(job.hash.bytes), result.ok)
+                      result.ok.shards.forEach((shardIndex, hash) => {
+                        if (job.indexForMh && shardIndex.has(job.indexForMh)) {
+                          jobs.push({ hash, kind: 'index_or_location' })
+                        }
+                      })
+                    }
                   }
                 }
-              }
+            }
           }
         }
-      }
-      const qr = await from({ claims, indexes })
-      if (qr.ok) {
-        /** @type {ReadableStream<import('carstream/api').Block>} */
-        const readable = new ReadableStream({
-          async pull (controller) {
-            for (const block of qr.ok.iterateIPLDBlocks()) {
-              controller.enqueue(block)
+        const qr = await from({ claims, indexes })
+        if (qr.ok) {
+          /** @type {ReadableStream<import('carstream/api').Block>} */
+          const readable = new ReadableStream({
+            async pull (controller) {
+              for (const block of qr.ok.iterateIPLDBlocks()) {
+                controller.enqueue(block)
+              }
+              controller.close()
             }
-            controller.close()
-          }
-        })
-        readable.pipeThrough(new CARWriterStream([qr.ok.root.cid])).pipeTo(Writable.toWeb(res))
+          })
+          readable
+            .pipeThrough(new CARWriterStream([qr.ok.root.cid]))
+            .pipeTo(Writable.toWeb(res))
+        }
+      })
+      await new Promise((resolve) => server.listen(resolve))
+      // @ts-expect-error
+      const { port } = server.address()
+      const indexerURL = new URL(`http://127.0.0.1:${port}`)
+      try {
+        await testfn(assert, { ...ctx, indexerURL })
+      } finally {
+        server.close()
       }
-    })
-    await new Promise(resolve => server.listen(resolve))
-    // @ts-expect-error
-    const { port } = server.address()
-    const indexerURL = new URL(`http://127.0.0.1:${port}`)
-    try {
-      await testfn(assert, { ...ctx, indexerURL })
-    } finally {
-      server.close()
     }
-  })
+  )
 
 /** @implements {ClaimFetcher} */
 class ClaimStorage {
@@ -191,7 +215,9 @@ export const generateLocationClaims = async (signer, location, index) => {
   const claims = []
   for (const [, slices] of index.shards) {
     for (const [slice, pos] of slices) {
-      claims.push(await generateLocationClaim(signer, slice, location, pos[0], pos[1]))
+      claims.push(
+        await generateLocationClaim(signer, slice, location, pos[0], pos[1])
+      )
     }
   }
   return claims
@@ -204,7 +230,13 @@ export const generateLocationClaims = async (signer, location, index) => {
  * @param {number} offset
  * @param {number} length
  */
-export const generateLocationClaim = async (signer, digest, location, offset, length) => {
+export const generateLocationClaim = async (
+  signer,
+  digest,
+  location,
+  offset,
+  length
+) => {
   const invocation = Assert.location.invoke({
     issuer: signer,
     audience: signer,
@@ -231,7 +263,7 @@ export const generateLocationClaim = async (signer, digest, location, offset, le
  * Encode a claim to a block.
  * @param {import('@ucanto/interface').IssuedInvocation<import('@web3-storage/content-claims/server/api').AnyAssertCap>} invocation
  */
-const encode = async invocation => {
+const encode = async (invocation) => {
   const view = await invocation.buildIPLDView()
   const bytes = await view.archive()
   if (bytes.error) throw new Error('failed to archive')
@@ -268,7 +300,7 @@ export const generateIndexClaim = async (signer, content, index) => {
 }
 
 /** @param {import('@ucanto/interface').Delegation} dlg */
-export const fromDelegation = dlg => {
-  const blocks = new Map([...dlg.export()].map(b => [String(b.cid), b]))
+export const fromDelegation = (dlg) => {
+  const blocks = new Map([...dlg.export()].map((b) => [String(b.cid), b]))
   return Claim.view({ root: dlg.cid, blocks })
 }

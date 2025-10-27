@@ -21,8 +21,8 @@ importers:
         specifier: ^1.7.0
         version: 1.7.0
       '@storacha/indexing-service-client':
-        specifier: ^2.6.4
-        version: 2.6.4
+        specifier: ^2.6.7
+        version: 2.6.7
       '@web3-storage/content-claims':
         specifier: ^5.2.1
         version: 5.2.1
@@ -236,11 +236,19 @@ packages:
     resolution: {integrity: sha512-f8+e7N6ww/YJ83Z4GeeGuQevVueRLg3StB0kv36ia/RkOWGBzqzoDQvXnxTY5rTJzcDT712pZdVcdHJX6jwbkg==}
     engines: {node: '>=16.15'}
 
+  '@storacha/blob-index@1.2.2':
+    resolution: {integrity: sha512-JC8EVXYbMdcNSn3jAitykLoRPfbqtq9TFhdpLIVN/6kWGj6Z0vtMcCCxmHFrWRGwGwma76MW3X9gsv8ANzomAg==}
+    engines: {node: '>=16.15'}
+    hasBin: true
+
+  '@storacha/capabilities@1.10.0':
+    resolution: {integrity: sha512-rdKOuKuiifNi46ZpXXHhAhQeuOevZGkASg0rhy62RRXnbgfcCt6cBna9NL9ULYbycL/Im1DKpotaEf83E6sNEQ==}
+
   '@storacha/capabilities@1.7.0':
     resolution: {integrity: sha512-YMIuocTgaVpqlgyds5NG+eJqfr+dfFkxdk33lJcFIRD30SZaGiA8vQ0ZPUHqcC9Azj0XZCRexz6nHXqEsn1aag==}
 
-  '@storacha/indexing-service-client@2.6.4':
-    resolution: {integrity: sha512-Big8lZbG8DRDrY64kW5BRCDFFz0jDWh8+SDw0yL6bUlt8oxJKakNtx2fWGMkVVoooWo7ldb7IdtO1yzmD5cVWw==}
+  '@storacha/indexing-service-client@2.6.7':
+    resolution: {integrity: sha512-3fXJ1B5BrfDCip8XnaD60Sn96dIKfh4l2wPINofZFsar+3coD4VxMPmcCi6eqxBMpU9Brm5P1GlHCu0GQjEl+w==}
 
   '@storacha/one-webcrypto@1.0.1':
     resolution: {integrity: sha512-bD+vWmcgsEBqU0Dz04BR43SA03bBoLTAY29vaKasY9Oe8cb6XIP0/vkm0OS2UwKC13c8uRgFW4rjJUgDCNLejQ==}
@@ -257,8 +265,14 @@ packages:
   '@ucanto/client@9.0.1':
     resolution: {integrity: sha512-cV8w3AnaZaYCdUmyFFICj8YhFckDoy2DvWgAzGDMkPz0WbUW4lw9Tjm4hEE8x5kiP47wYej/pHKWCcoELiU0qw==}
 
+  '@ucanto/client@9.0.2':
+    resolution: {integrity: sha512-XbG8rw/fc1hPSFKDQ/z1NpIuc4Lm79J4NWbP+dedvDnb5LmOBMHE8bjjEPD4xGO2eh6fWQSZ4YTYk5wjkLz+3Q==}
+
   '@ucanto/core@10.4.0':
     resolution: {integrity: sha512-ohLgxHUo/XgL1G/pvelsHl3zyq7w+fn6ZVN3yVhgiJwbRh67EqvjavXYEFGSLBzlAdMGsfDNkbetQob1sNSNGg==}
+
+  '@ucanto/core@10.4.5':
+    resolution: {integrity: sha512-NKVgAFjpPu1QFyKjYHlaeJbSvst3oA79S7XNSFFQGhNKhGJ45ro67Fa5zxdy5jlU5jhSox3+T81VsmsszfBRYw==}
 
   '@ucanto/interface@10.3.0':
     resolution: {integrity: sha512-97929CGr3AM4Y01CLZ3wwhzrlth5pq8eJCbd/hUMxD62nyG9eRsyvt3RSOtBNtu4jTdMH580x0oAF2D1XKcPvw==}
@@ -266,14 +280,26 @@ packages:
   '@ucanto/interface@11.0.0':
     resolution: {integrity: sha512-679NmyKXAuh9Zu8BbTNvwmi5gke8RytH7qRvPxpWL/ytKUm/Ea3y1fwGmaCnTbf38GXtVP89eERAsh+p8pSXzA==}
 
+  '@ucanto/interface@11.0.1':
+    resolution: {integrity: sha512-d0yoPFXdbb3EyM3sBom5VVcVyz58HT+57qi/ywSY1dbZAm4c7GZss0lpfcI5OXQREzGCzJYAg1e7pFwqbATnmQ==}
+
   '@ucanto/principal@9.0.2':
     resolution: {integrity: sha512-RE3Rj0oz4wh4C9p2JJZB9+QLd7Fi3lCixrbHgAvEoSyTNpvz6ky8DGNtttmD5j3O94z13qdVdIoSRY6DQZXfAg==}
+
+  '@ucanto/principal@9.0.3':
+    resolution: {integrity: sha512-MFLvckOpQA46VSeLWyB7xCysL+ub5vnbCEtHbWhNE3qkzeo14v4wSThd60odPhxj83QXrzbveiebp0gcaEvXJg==}
 
   '@ucanto/server@10.2.0':
     resolution: {integrity: sha512-RKoh7m86V97Kk8LZRaKmF1f2HdT3iQNyAGYShx9gasEV3qUuTaq2k6gXBTBRiEaYjX27C3C/KSaTrmVCEPwp1g==}
 
   '@ucanto/transport@9.2.0':
     resolution: {integrity: sha512-w/CtD5LYEpGo/CxV78IiWalW99gNRPHKZ/DoOpart5QShozvnU//PwUqyqnGimZCDIrIq4LH6x92z2L/2k5OKQ==}
+
+  '@ucanto/transport@9.2.1':
+    resolution: {integrity: sha512-/Dhr+2vjpGO5GTKsSl8XcPQFtFdZvIA9Yk/yzzY9DHFsdI+tXrUjLWYwXcidx8EIdx5Xd9oitF4wodIZuiW8GQ==}
+
+  '@ucanto/validator@10.0.1':
+    resolution: {integrity: sha512-J1/2NAfvs55CxDEuHKMTjoLgoVrFqBbZqErYwL7TDx8Pu2V9sv7rc2wZS5dRxcM1VCEzHXY3SWeLOJuH8VgKrw==}
 
   '@ucanto/validator@9.1.0':
     resolution: {integrity: sha512-2JnEEZYc8kTZz+qbyL7LbI/TSpBRWLOchNhaRB5DTyj38FxMFQUXIB7gQ5lZHv49uYJGx/FXKPw0268WgJdEvg==}
@@ -1699,6 +1725,28 @@ snapshots:
       multiformats: 13.3.6
       uint8arrays: 5.1.0
 
+  '@storacha/blob-index@1.2.2':
+    dependencies:
+      '@ipld/dag-cbor': 9.2.4
+      '@storacha/capabilities': 1.10.0
+      '@storacha/one-webcrypto': 1.0.1
+      '@ucanto/core': 10.4.5
+      '@ucanto/interface': 11.0.1
+      carstream: 2.3.0
+      multiformats: 13.3.6
+      sade: 1.8.1
+      uint8arrays: 5.1.0
+
+  '@storacha/capabilities@1.10.0':
+    dependencies:
+      '@ucanto/core': 10.4.5
+      '@ucanto/interface': 11.0.1
+      '@ucanto/principal': 9.0.3
+      '@ucanto/transport': 9.2.1
+      '@ucanto/validator': 10.0.1
+      '@web3-storage/data-segment': 5.3.0
+      multiformats: 13.3.6
+
   '@storacha/capabilities@1.7.0':
     dependencies:
       '@ucanto/core': 10.4.0
@@ -1709,16 +1757,16 @@ snapshots:
       '@web3-storage/data-segment': 5.3.0
       multiformats: 13.3.6
 
-  '@storacha/indexing-service-client@2.6.4':
+  '@storacha/indexing-service-client@2.6.7':
     dependencies:
       '@ipld/dag-cbor': 9.2.4
       '@ipld/dag-ucan': 3.4.5
-      '@storacha/blob-index': 1.1.0
-      '@storacha/capabilities': 1.7.0
-      '@ucanto/client': 9.0.1
-      '@ucanto/core': 10.4.0
-      '@ucanto/interface': 10.3.0
-      '@ucanto/transport': 9.2.0
+      '@storacha/blob-index': 1.2.2
+      '@storacha/capabilities': 1.10.0
+      '@ucanto/client': 9.0.2
+      '@ucanto/core': 10.4.5
+      '@ucanto/interface': 11.0.1
+      '@ucanto/transport': 9.2.1
       multiformats: 13.3.6
 
   '@storacha/one-webcrypto@1.0.1': {}
@@ -1736,6 +1784,11 @@ snapshots:
       '@ucanto/core': 10.4.0
       '@ucanto/interface': 10.3.0
 
+  '@ucanto/client@9.0.2':
+    dependencies:
+      '@ucanto/core': 10.4.5
+      '@ucanto/interface': 11.0.1
+
   '@ucanto/core@10.4.0':
     dependencies:
       '@ipld/car': 5.4.2
@@ -1744,12 +1797,25 @@ snapshots:
       '@ucanto/interface': 10.3.0
       multiformats: 13.3.6
 
+  '@ucanto/core@10.4.5':
+    dependencies:
+      '@ipld/car': 5.4.2
+      '@ipld/dag-cbor': 9.2.4
+      '@ipld/dag-ucan': 3.4.5
+      '@ucanto/interface': 11.0.1
+      multiformats: 13.3.6
+
   '@ucanto/interface@10.3.0':
     dependencies:
       '@ipld/dag-ucan': 3.4.5
       multiformats: 13.3.6
 
   '@ucanto/interface@11.0.0':
+    dependencies:
+      '@ipld/dag-ucan': 3.4.5
+      multiformats: 13.3.6
+
+  '@ucanto/interface@11.0.1':
     dependencies:
       '@ipld/dag-ucan': 3.4.5
       multiformats: 13.3.6
@@ -1764,6 +1830,16 @@ snapshots:
       multiformats: 13.3.1
       one-webcrypto: 1.0.3
 
+  '@ucanto/principal@9.0.3':
+    dependencies:
+      '@ipld/dag-ucan': 3.4.5
+      '@noble/curves': 1.4.0
+      '@noble/ed25519': 1.7.3
+      '@noble/hashes': 1.4.0
+      '@ucanto/interface': 11.0.1
+      multiformats: 13.3.6
+      one-webcrypto: 1.0.3
+
   '@ucanto/server@10.2.0':
     dependencies:
       '@ucanto/core': 10.4.0
@@ -1775,6 +1851,19 @@ snapshots:
     dependencies:
       '@ucanto/core': 10.4.0
       '@ucanto/interface': 10.3.0
+
+  '@ucanto/transport@9.2.1':
+    dependencies:
+      '@ucanto/core': 10.4.5
+      '@ucanto/interface': 11.0.1
+
+  '@ucanto/validator@10.0.1':
+    dependencies:
+      '@ipld/car': 5.4.2
+      '@ipld/dag-cbor': 9.2.4
+      '@ucanto/core': 10.4.5
+      '@ucanto/interface': 11.0.1
+      multiformats: 13.3.6
 
   '@ucanto/validator@9.1.0':
     dependencies:

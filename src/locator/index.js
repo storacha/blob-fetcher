@@ -11,7 +11,7 @@ import { withSimpleSpan } from '../tracing/tracing.js'
  */
 
 /** @param {Claim} c */
-const contentDigest = c =>
+const contentDigest = (c) =>
   'digest' in c.content ? Digest.decode(c.content.digest) : c.content.multihash
 
 /**
@@ -19,11 +19,12 @@ const contentDigest = c =>
  * @property {ServiceClient} client An Indexing Service client instance.
  * @property {DID[]} [spaces] The Spaces to search for the content. If
  * missing, the locator will search all Spaces.
+ * @property {boolean} [compressed] Whether to use compressed queries.
  */
 export class IndexingServiceLocator {
   #client
   #spaces
-
+  #compressed
   /**
    * Cached location entries.
    * @type {DigestMap<API.MultihashDigest, API.Location>}
@@ -36,7 +37,7 @@ export class IndexingServiceLocator {
   /**
    * Known Shards are locations claims we have a URL for but no length. They can be combined with known
    * slices to make a location entry, but can't be used for blob fetching on their own
-  * @type {DigestMap<API.MultihashDigest, API.ShardLocation>}
+   * @type {DigestMap<API.MultihashDigest, API.ShardLocation>}
    *
    */
   #knownShards
@@ -60,11 +61,13 @@ export class IndexingServiceLocator {
    *
    * @param {LocatorOptions} options
    */
-  constructor ({ client, spaces }) {
+  constructor ({ client, spaces, compressed = false }) {
     this.#client = client
     this.#spaces = spaces ?? []
+    this.#compressed = compressed
     this.#cache = new DigestMap()
     this.#claimFetched = {
+      standard_compressed: new DigestMap(),
       index_or_location: new DigestMap(),
       location: new DigestMap(),
       standard: new DigestMap()
@@ -82,15 +85,26 @@ export class IndexingServiceLocator {
       const knownSlice = this.#knownSlices.get(digest)
       if (knownSlice) {
         // read the shard
-        await this.#readShard(digest, knownSlice.shardDigest, knownSlice.position)
+        await this.#readShard(
+          digest,
+          knownSlice.shardDigest,
+          knownSlice.position
+        )
       } else {
         // nope we don't know anything really here, better read for the digest
-        await this.#readClaims(digest, 'standard')
+        await this.#readClaims(
+          digest,
+          this.#compressed ? 'standard_compressed' : 'standard'
+        )
         // if we now have and index, read the shard
         const knownSlice = this.#knownSlices.get(digest)
         if (knownSlice) {
           // read the shard
-          await this.#readShard(digest, knownSlice.shardDigest, knownSlice.position)
+          await this.#readShard(
+            digest,
+            knownSlice.shardDigest,
+            knownSlice.position
+          )
         }
       }
       // seeing as we just read the index for this CID we _should_ have some
@@ -119,7 +133,7 @@ export class IndexingServiceLocator {
     }
     this.#cache.set(digest, {
       digest,
-      site: location.site.map(s => ({
+      site: location.site.map((s) => ({
         location: s.location,
         range: {
           offset: (s.range?.offset || 0) + pos[0],
@@ -162,13 +176,13 @@ export class IndexingServiceLocator {
       if (claim.type === 'assert/location') {
         if (claim.range?.length != null) {
           addOrSetLocation(this.#cache, contentDigest(claim), {
-            location: claim.location.map(l => new URL(l)),
+            location: claim.location.map((l) => new URL(l)),
             range: { offset: claim.range.offset, length: claim.range.length },
             space: claim.space?.did()
           })
         } else {
           addOrSetLocation(this.#knownShards, contentDigest(claim), {
-            location: claim.location.map(l => new URL(l)),
+            location: claim.location.map((l) => new URL(l)),
             range: claim.range ? { offset: claim.range.offset } : undefined,
             space: claim.space?.did()
           })
