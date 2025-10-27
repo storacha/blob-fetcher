@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.2.4](https://github.com/storacha/blob-fetcher/compare/v4.2.3...v4.2.4) (2025-10-27)
+
+
+### Bug Fixes
+
+* add repository url ([495982c](https://github.com/storacha/blob-fetcher/commit/495982c9074eb17227e4a2c4c59e4af2caff6d80))
+* add repository url ([#51](https://github.com/storacha/blob-fetcher/issues/51)) ([af081a3](https://github.com/storacha/blob-fetcher/commit/af081a3909ffa40f2c32d959bf57538e1bd784f0))
+
 ## [4.2.3](https://github.com/storacha/blob-fetcher/compare/v4.2.2...v4.2.3) (2025-10-27)
 
 
