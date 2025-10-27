@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.2.3](https://github.com/storacha/blob-fetcher/compare/v4.2.2...v4.2.3) (2025-10-27)
+
+
+### Bug Fixes
+
+* bump npm and pnpm versions ([47b9730](https://github.com/storacha/blob-fetcher/commit/47b973036cbe647b6f24dad0fb176d04515bf014))
+* bump npm and pnpm versions ([#48](https://github.com/storacha/blob-fetcher/issues/48)) ([3c39dad](https://github.com/storacha/blob-fetcher/commit/3c39daddbc5c191674828b9fa0b981b6a9315cfb))
+* typo ([cc79435](https://github.com/storacha/blob-fetcher/commit/cc79435cc5daafc66557e77837fd2ec61cd31199))
+* typo ([#49](https://github.com/storacha/blob-fetcher/issues/49)) ([c3a39e0](https://github.com/storacha/blob-fetcher/commit/c3a39e034f96427a9a653c1b7ae8bf0dc74d0f3f))
+
 ## [4.2.2](https://github.com/storacha/blob-fetcher/compare/v4.2.1...v4.2.2) (2025-10-27)
 
 
