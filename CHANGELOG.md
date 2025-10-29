@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.5](https://github.com/storacha/blob-fetcher/compare/v4.2.4...v4.2.5) (2025-10-29)
+
+
+### Bug Fixes
+
+* **locator:** add compressed to scope to spaces ([ac250ed](https://github.com/storacha/blob-fetcher/commit/ac250ed6912c34e9cf917e4d42bed272e3aded84))
+
 ## [4.2.4](https://github.com/storacha/blob-fetcher/compare/v4.2.3...v4.2.4) (2025-10-27)
 
 
