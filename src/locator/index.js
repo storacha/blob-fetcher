@@ -234,7 +234,8 @@ export class IndexingServiceLocator {
   scopeToSpaces (spaces) {
     return new IndexingServiceLocator({
       client: this.#client,
-      spaces: [...new Set([...this.#spaces, ...spaces]).values()]
+      spaces: [...new Set([...this.#spaces, ...spaces]).values()],
+      compressed: this.#compressed
     })
   }
 }
