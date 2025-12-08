@@ -232,11 +232,16 @@ export class IndexingServiceLocator {
 
   /** @type {API.Locator['scopeToSpaces']} */
   scopeToSpaces (spaces) {
-    return new IndexingServiceLocator({
+    const scoped = new IndexingServiceLocator({
       client: this.#client,
-      spaces: [...new Set([...this.#spaces, ...spaces]).values()],
-      compressed: this.#compressed
+      spaces: [...new Set([...this.#spaces, ...spaces]).values()]
     })
+    // Share caches with parent to avoid re-fetching
+    scoped.#cache = this.#cache
+    scoped.#knownSlices = this.#knownSlices
+    scoped.#knownShards = this.#knownShards
+    scoped.#claimFetched = this.#claimFetched
+    return scoped
   }
 }
 
