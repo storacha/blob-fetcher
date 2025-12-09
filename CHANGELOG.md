@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.6](https://github.com/storacha/blob-fetcher/compare/v4.2.5...v4.2.6) (2025-12-09)
+
+
+### Bug Fixes
+
+* share cache between parent and scoped locators ([#54](https://github.com/storacha/blob-fetcher/issues/54)) ([b498a90](https://github.com/storacha/blob-fetcher/commit/b498a9038a5d39de4a9c6e2e6d21b507f1ee3cde))
+
 ## [4.2.5](https://github.com/storacha/blob-fetcher/compare/v4.2.4...v4.2.5) (2025-10-29)
 
 
