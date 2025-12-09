@@ -234,7 +234,8 @@ export class IndexingServiceLocator {
   scopeToSpaces (spaces) {
     const scoped = new IndexingServiceLocator({
       client: this.#client,
-      spaces: [...new Set([...this.#spaces, ...spaces]).values()]
+      spaces: [...new Set([...this.#spaces, ...spaces]).values()],
+      compressed: this.#compressed
     })
     // Share caches with parent to avoid re-fetching
     scoped.#cache = this.#cache
