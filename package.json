@@ -1,6 +1,6 @@
 {
   "name": "@web3-storage/blob-fetcher",
-  "version": "4.2.5",
+  "version": "4.2.6",
   "description": "A blob fetcher that batches requests and reads multipart byterange responses.",
   "main": "src/index.js",
   "type": "module",
